@@ -1,5 +1,7 @@
 data/*
+test_solutions/*
 solutions/*
+bugs/*
 
 
 # Byte-compiled / optimized / DLL files
