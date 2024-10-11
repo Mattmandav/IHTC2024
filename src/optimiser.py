@@ -136,7 +136,7 @@ class Optimiser():
         for line in result.stdout.splitlines():
             if("." in line and len(line.split()) == 1):
                 if(int(line.split(".")[-1]) != 0):
-                    reasons.append((line.split(".")[0],int(line.split(".")[-1])))
+                    reasons.append(line.split(".")[0])
             # Get violations
             if("Total violations" in line):
                 violations = int(line.split()[-1])
@@ -166,7 +166,7 @@ class Optimiser():
             print("Greedy approach took {} seconds".format(time.time()-t0))
         else:
             solution = {"patients": [], "nurses": []}
-        
+        # Returning the solution
         return solution
 
 
@@ -183,38 +183,20 @@ class Optimiser():
         NURSE ASSIGNMENT SECOND
         Iterate through days, then iterate through nurses:
         - We now know the workload of each day, which we will try to meet as closely as possible.
+
+        The greedy algorithm will never break the following constraints:
+        - RoomGenderMix
+        - PatientRoomCompatibility
+        - SurgeonOvertime
+        - OperatingTheaterOvertime
+        - AdmissionDay
+        - RoomCapacity
+        - NursePresence
+
+        The greedy algorithm might not be able to satisfy:
+        - MandatoryUnscheduledPatients
+        - UncoveredRoom
         """
-
-        # Preallocating solution
-        solution = {"patients": [], "nurses": []}
-        
-        # Building room capacity tracking object
-        room_allocation = {}
-        for d in self.all_days:
-            for r in self.data["rooms"]:
-                room_allocation[(d,r["id"])] = []
-
-        # Theater capacity tracking
-        theater_allocation = {}
-        for d in self.all_days:
-            for t in self.data["operating_theaters"]:
-                theater_allocation[(d,t["id"])] = t["availability"][d]
-
-        # Surgeon capacity tracking
-        surgeon_allocation = {}
-        for d in self.all_days:
-            for s in self.data["surgeons"]:
-                surgeon_allocation[(d,s["id"])] = s["max_surgery_time"][d]
-
-        # Adding in occupants
-        for o in self.data["occupants"]:
-            for i in range(o["length_of_stay"]):
-                room_allocation[(i,o["room_id"])].append((o["id"],o["gender"],o["age_group"]))
-
-        # Iterating over non-mandatory patients
-        all_non_mandatory_patients = [patient_id for patient_id in self.patient_dict if not self.patient_dict[patient_id]["mandatory"]]
-        for patient_id in all_non_mandatory_patients:
-            solution["patients"].append({"id": patient_id, "admission_day": "none"})
 
         # Creating and sorting a list of mandatory patients (earliest admission date then if same date patient with tighter dates)
         all_mandatory_patients = [(patient_id,self.patient_dict[patient_id]["possible_admission_days"][0],len(self.patient_dict[patient_id]["possible_admission_days"]))
@@ -223,19 +205,65 @@ class Optimiser():
         all_mandatory_patients = sorted(all_mandatory_patients, key=lambda x: (x[1],x[2]))
         all_mandatory_patients = [p[0] for p in all_mandatory_patients]
         
-        # Iterating over mandatory patients
-        admitted_mandatory_patients = []
-        for d in self.all_days:
-            for patient_id in all_mandatory_patients:
-                # Check if already admitted 
-                if(patient_id in admitted_mandatory_patients):
-                    continue
-                # If not try allocating
-                [admitted,patient_admission,room_allocation,theater_allocation,surgeon_allocation] = self.greedy_patient_allocation(d,patient_id,room_allocation,theater_allocation,surgeon_allocation)
-                if(admitted):
-                    solution["patients"].append(patient_admission)
-                    admitted_mandatory_patients.append(patient_id)
+        while True:
+            # Preallocating solution
+            solution = {"patients": [], "nurses": []}
 
+            # Building room capacity tracking object
+            room_allocation = {}
+            for d in self.all_days:
+                for r in self.data["rooms"]:
+                    room_allocation[(d,r["id"])] = []
+
+            # Theater capacity tracking
+            theater_allocation = {}
+            for d in self.all_days:
+                for t in self.data["operating_theaters"]:
+                    theater_allocation[(d,t["id"])] = t["availability"][d]
+
+            # Surgeon capacity tracking
+            surgeon_allocation = {}
+            for d in self.all_days:
+                for s in self.data["surgeons"]:
+                    surgeon_allocation[(d,s["id"])] = s["max_surgery_time"][d]
+
+            # Adding in occupants
+            for o in self.data["occupants"]:
+                for i in range(o["length_of_stay"]):
+                    room_allocation[(i,o["room_id"])].append((o["id"],o["gender"],o["age_group"]))
+            
+            # Iterating over mandatory patients
+            admitted_mandatory_patients = []
+            for d in self.all_days:
+                for patient_id in all_mandatory_patients:
+                    # Check if already admitted 
+                    if(patient_id in admitted_mandatory_patients):
+                        continue
+                    # If not try allocating
+                    [admitted,patient_admission,room_allocation,theater_allocation,surgeon_allocation] = self.greedy_patient_allocation(d,patient_id,room_allocation,theater_allocation,surgeon_allocation)
+                    if(admitted):
+                        solution["patients"].append(patient_admission)
+                        admitted_mandatory_patients.append(patient_id)
+
+            # Checking if any people are not allocated
+            not_allocated = []
+            for patient_id in all_mandatory_patients:
+                if(patient_id not in admitted_mandatory_patients):
+                    not_allocated.append((patient_id,self.patient_dict[patient_id]["possible_admission_days"][0],len(self.patient_dict[patient_id]["possible_admission_days"])))
+            not_allocated = sorted(not_allocated, key=lambda x: (x[1],x[2]))
+            not_allocated = [p[0] for p in not_allocated]
+
+            # Loop again if not all patients are allocated
+            if(len(not_allocated) == 0):
+                break
+            else:
+                all_mandatory_patients = not_allocated + admitted_mandatory_patients
+
+        # Iterating over non-mandatory patients
+        all_non_mandatory_patients = [patient_id for patient_id in self.patient_dict if not self.patient_dict[patient_id]["mandatory"]]
+        for patient_id in all_non_mandatory_patients:
+            solution["patients"].append({"id": patient_id, "admission_day": "none"})
+        
         # Working out the workload for each (day,shift,room)
         workload_day_shift_room = {}
         for d in self.all_days:
@@ -285,7 +313,8 @@ class Optimiser():
                     for r in self.data["rooms"]:
                         if(r["id"] in rooms_with_nurse):
                             continue
-                        elif(remaining_load >= workload_day_shift_room[(d,shift,r["id"])]):
+                        #elif(remaining_load >= workload_day_shift_room[(d,shift,r["id"])]):
+                        elif(remaining_load >= 0):
                             rooms_assigned_to_nurse.append(r["id"])
                             rooms_with_nurse.append(r["id"])
                             remaining_load -= workload_day_shift_room[(d,shift,r["id"])]
@@ -295,6 +324,27 @@ class Optimiser():
                                                                           "shift": shift, 
                                                                           "rooms": rooms_assigned_to_nurse})
 
+        # # Checking for uncovered rooms
+        # uncovered_rooms = []
+        # for d in self.all_days:
+        #     for shift in self.shift_types:
+        #         for r in self.data["rooms"]:
+        #             if(workload_day_shift_room[(d,shift,r["id"])] > 0):
+        #                 room_covered = False
+        #                 for nurse_id in nurse_allocation:
+        #                     for assignment in nurse_allocation[nurse_id]["assignments"]:
+        #                         if(assignment["day"] == d and 
+        #                            assignment["shift"] == shift and 
+        #                            r["id"] in assignment["rooms"]):
+        #                             room_covered = True
+        #                             break
+        #                     if(room_covered):
+        #                         break
+        #                 if(not room_covered):
+        #                     uncovered_rooms.append((d,shift,r["id"]))
+        # print(uncovered_rooms)
+        # print(len(uncovered_rooms))
+        
         # Applying the nurses to the solution
         for nurse_id in self.nurse_dict:
             if(len(nurse_allocation[nurse_id]["assignments"]) > 0):
@@ -337,21 +387,3 @@ class Optimiser():
                                     # Return the admission details
                                     return True,patient_admission,room_allocation,theater_allocation,surgeon_allocation
         return False,{},room_allocation,theater_allocation,surgeon_allocation
-    
-
-    # def post_greedy_repair(self):
-    #     """
-    #     The greedy algorithm will never break the following constraints:
-    #     - RoomGenderMix
-    #     - PatientRoomCompatibility
-    #     - SurgeonOvertime
-    #     - OperatingTheaterOvertime
-    #     - AdmissionDay
-    #     - RoomCapacity
-    #     - NursePresence
-
-    #     The greedy algorithm might not be able to satisfy:
-    #     - MandatoryUnscheduledPatients
-    #     - UncoveredRoom
-    #     """
-    #     return
