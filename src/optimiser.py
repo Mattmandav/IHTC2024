@@ -127,14 +127,20 @@ class Optimiser():
         # Check solution
         violations = 0
         cost = 0
+        reasons = []
         result = subprocess.run(
             ['.\IHTP_Validator', 'src/temp_solutions/data.json', 'src/temp_solutions/solution.json'],
             capture_output = True, # Python >= 3.7 only
             text = True # Python >= 3.7 only
             )
         for line in result.stdout.splitlines():
+            if("." in line and len(line.split()) == 1):
+                if(int(line.split(".")[-1]) != 0):
+                    reasons.append((line.split(".")[0],int(line.split(".")[-1])))
+            # Get violations
             if("Total violations" in line):
                 violations = int(line.split()[-1])
+            # Get cost
             if("Total cost" in line):
                 cost = int(line.split()[-1])
         
@@ -143,7 +149,7 @@ class Optimiser():
         os.remove("src/temp_solutions/solution.json")
         
         # Return violations and cost
-        return {"Violations": violations, "Cost": cost}
+        return {"Violations": violations, "Cost": cost, "Reasons": reasons}
 
 
     """
@@ -331,3 +337,21 @@ class Optimiser():
                                     # Return the admission details
                                     return True,patient_admission,room_allocation,theater_allocation,surgeon_allocation
         return False,{},room_allocation,theater_allocation,surgeon_allocation
+    
+
+    # def post_greedy_repair(self):
+    #     """
+    #     The greedy algorithm will never break the following constraints:
+    #     - RoomGenderMix
+    #     - PatientRoomCompatibility
+    #     - SurgeonOvertime
+    #     - OperatingTheaterOvertime
+    #     - AdmissionDay
+    #     - RoomCapacity
+    #     - NursePresence
+
+    #     The greedy algorithm might not be able to satisfy:
+    #     - MandatoryUnscheduledPatients
+    #     - UncoveredRoom
+    #     """
+    #     return
