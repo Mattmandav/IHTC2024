@@ -3,6 +3,10 @@ Development space for the IHTC 2024.
 
 https://ihtc2024.github.io/
 
+## Development team and contributions
+
+- Matthew Davison (Team leader)
+
 ## Running the validator or the optimiser
 
 To run for an instance/solution pair use the following:
