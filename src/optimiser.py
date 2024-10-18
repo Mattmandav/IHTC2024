@@ -2,6 +2,10 @@ import json
 import subprocess
 import os
 import time
+import multiprocessing as mp
+import copy
+import numpy as np
+
 
 # Main optimisation function
 def main(input_file,seed):
@@ -15,6 +19,7 @@ def main(input_file,seed):
 
     # Run an optimisation method
     solution = optimisation_object.optimise(method = "greedy")
+    solution = optimisation_object.improvement_hyper_heuristic(solution)
     print(optimisation_object.solution_check(solution))
 
     return solution
@@ -25,6 +30,7 @@ class Optimiser():
     def __init__(self,data):
         # Saving the extracted JSON
         self.data = data
+        self.cores = 4
 
         # Extracting key information
         self.ndays = data["days"]
@@ -116,12 +122,12 @@ class Optimiser():
     Solution checking
     """
 
-    def solution_check(self, solution):
+    def solution_check(self, solution, core_name = ""):
         # Export data
-        with open("src/temp_solutions/data.json", "w") as outfile: 
+        with open("src/temp_solutions/data{}.json".format(core_name), "w") as outfile: 
             json.dump(self.data, outfile, indent=2)
         # Export solution
-        with open("src/temp_solutions/solution.json", "w") as outfile: 
+        with open("src/temp_solutions/solution{}.json".format(core_name), "w") as outfile: 
             json.dump(solution, outfile, indent=2)
         
         # Check solution
@@ -129,7 +135,7 @@ class Optimiser():
         cost = 0
         reasons = []
         result = subprocess.run(
-            ['.\IHTP_Validator', 'src/temp_solutions/data.json', 'src/temp_solutions/solution.json'],
+            ['.\IHTP_Validator', 'src/temp_solutions/data{}.json'.format(core_name), 'src/temp_solutions/solution{}.json'.format(core_name)],
             capture_output = True, # Python >= 3.7 only
             text = True # Python >= 3.7 only
             )
@@ -145,11 +151,19 @@ class Optimiser():
                 cost = int(line.split()[-1])
         
         # Clean up temp folder
-        os.remove("src/temp_solutions/data.json")
-        os.remove("src/temp_solutions/solution.json")
+        os.remove("src/temp_solutions/data{}.json".format(core_name))
+        os.remove("src/temp_solutions/solution{}.json".format(core_name))
         
         # Return violations and cost
         return {"Violations": violations, "Cost": cost, "Reasons": reasons}
+
+
+    def solution_score(self, solution, core_name):
+        values = self.solution_check(solution, core_name=core_name)
+        if(values["Violations"] > 0):
+            return float('inf')
+        else:
+            return values["Cost"]
 
 
     """
@@ -387,3 +401,85 @@ class Optimiser():
                                     # Return the admission details
                                     return True,patient_admission,room_allocation,theater_allocation,surgeon_allocation
         return False,{},room_allocation,theater_allocation,surgeon_allocation
+    
+
+    """
+    Hyper-heurisic improvement
+    """
+    
+    def improvement_hyper_heuristic(self, solution, time_limit = 10, pool_size = 4):
+        """
+        The improvement heuristic applies 4 moves at the same time to the current solution.
+        It will never accept an infeasible solution.
+        If we have multiple feasible the "best" solution has a chance of being selected as current.
+        100% chance if solution is improving or equivalent.
+        p% chance if the solution is not improving.
+        The best solution is always saved.
+        """
+        # Preallocating features
+        print("Starting hyper-heuristic (Time limit: {}s)".format(time_limit))
+        best_solution = solution
+        best_solution_value = self.solution_check(solution)["Cost"]
+        current_solution = solution
+        current_solution_value = self.solution_check(solution)["Cost"]
+        t0 = time.time()
+        
+        # Applying heuristic
+        while time.time() - t0 < time_limit:
+            # Making copies of solution
+            solution_pool = []
+            for p in range(pool_size):
+                solution_pool.append(copy.deepcopy(current_solution))
+
+            # Applying moves
+            with mp.Pool(self.cores) as p:
+                new_solutions = p.map(self.solution_adjustment,solution_pool)      
+
+            # Checking solution pool for "best" solution
+            index_new_sols = [(new_solutions[p],p) for p in range(pool_size)]
+            with mp.Pool(self.cores) as p:
+                values = p.starmap(self.solution_score,index_new_sols)
+            temp_best = copy.deepcopy(new_solutions[np.argmin(values)])
+            temp_best_value = self.solution_check(temp_best)["Cost"]
+
+            # Saving best solution
+            if(temp_best_value < best_solution_value):
+                best_solution = copy.deepcopy(temp_best)
+                best_solution_value = copy.deepcopy(temp_best_value)
+
+            # Deciding whether to accept new solution as current solution
+            if(temp_best_value < current_solution_value):
+                current_solution = copy.deepcopy(temp_best)
+                current_solution_value = copy.deepcopy(temp_best_value)
+
+        # Return the best solution
+        return best_solution
+
+    
+    def solution_adjustment(self,solution):
+        """
+        POSSIBLE PATIENT MOVES
+        - Remove non-mandatory patient
+        - Insert non-mandatory patient
+        - Change room of patient
+        - Change admission day
+        - Change operating theater
+        - Swap two patients between rooms
+        - Swap two patients admission days
+        - Swap two patients operating theater
+
+        POSSIBLE NURSE MOVES
+        - Add a room assignment
+        - Remove a room assignment
+        - Swap a room assignment
+        - Add a shift
+        - Remove a shift
+        """
+        new_solution = solution
+        
+        return new_solution
+    
+    
+    """
+    Individual adjustments to the solution
+    """
