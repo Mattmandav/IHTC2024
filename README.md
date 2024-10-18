@@ -27,6 +27,12 @@ To fix a seed (for example, 1234) for random generation then use the following:
 > python main.py input_file.json --seed 1234
 ```
 
+To specify an output folder (for example, solutions) then use the following:
+
+```bash
+> python main.py input_file.json --output_folder solutions
+```
+
 ## Data format
 
 ```json
