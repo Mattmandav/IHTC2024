@@ -5,6 +5,7 @@ import time
 import multiprocessing as mp
 import copy
 import numpy as np
+import random as rd
 
 
 # Main optimisation function
@@ -444,6 +445,7 @@ class Optimiser():
 
             # Saving best solution
             if(temp_best_value < best_solution_value):
+                print("New best solution found! Score:",temp_best_value)
                 best_solution = copy.deepcopy(temp_best)
                 best_solution_value = copy.deepcopy(temp_best_value)
 
@@ -476,10 +478,91 @@ class Optimiser():
         - Remove a shift
         """
         new_solution = solution
+
+        # Select an operator to use
+        operator =  rd.choices([1,2,3])[0]
+
+        # Operator 1: Insert an unassigned patient
+        if(operator == 1):
+            new_solution = self.insert_patient(solution)
+
+        # Operator 2: Remove an assigned patient
+        if(operator == 2):
+            new_solution = self.remove_patient(solution)
+
+        # Operator 3: Remove then insert (1+2)
+        if(operator == 3):
+            new_solution = self.remove_patient(solution)
+            new_solution = self.insert_patient(new_solution)
         
+
+        # Return final solution
         return new_solution
     
     
     """
     Individual adjustments to the solution
     """
+
+    # Insert a non-mandatory patient
+    def insert_patient(self,solution):
+        """
+        This operator takes a solution and tries to insert a single non-mandatory patient
+        """
+        # Creating a list of unassigned patients
+        non_assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] == "none"]
+
+        # If cannot remove patient then return
+        if(len(non_assigned_patients) == 0):
+            return solution
+        
+        # Selecting a patient to insert
+        patient_to_insert = rd.choices(non_assigned_patients)[0]
+        patient_information = self.patient_dict[patient_to_insert]
+
+        # Selecting random features for solution
+        new_solution_entry = {"id": patient_to_insert,
+                              "admission_day": rd.choices(patient_information["possible_admission_days"])[0],
+                              "room": rd.choices(patient_information["possible_rooms"])[0],
+                              "operating_theater": rd.choices(patient_information["possible_theaters"])[0]}
+        
+        # Creating new solution
+        new_patients = []
+        for current_patient in solution["patients"]:
+            if(current_patient["id"] != patient_to_insert):
+                new_patients.append(current_patient)
+            else:
+                new_patients.append(new_solution_entry)
+        solution["patients"] = new_patients
+        
+        # Return updated solution
+        return solution
+    
+
+    def remove_patient(self,solution):
+        """
+        This operator takes a solution and removes a single non-mandatory patient
+        """
+        # Creating a list of non-mandatory patients
+        all_non_mandatory_patients = [patient_id for patient_id in self.patient_dict if not self.patient_dict[patient_id]["mandatory"]]
+        assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+        assigned_non_mandatory_patients = list(set(all_non_mandatory_patients) & set(assigned_patients))
+
+        # If cannot remove patient then return
+        if(len(assigned_non_mandatory_patients) == 0):
+            return solution
+
+        # Selecting a patient to remove
+        patient_to_remove = rd.choices(assigned_non_mandatory_patients)[0]
+
+        # Removing patient
+        new_patients = []
+        for current_patient in solution["patients"]:
+            if(current_patient["id"] != patient_to_remove):
+                new_patients.append(current_patient)
+        solution["patients"] = new_patients
+
+        # Return modified solution
+        return solution
+
+    
