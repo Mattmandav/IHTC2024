@@ -179,6 +179,45 @@ To specify an output folder (for example, solutions) then use the following:
 
 **H7 -** Room capacity: The number of patients in each room in each day cannot exceed the capacity of the room.
 
+**H8 -** Nurse presence: Nurses may only be assigned to shifts that they are working.
+
+**H9 -** Uncovered room: If a room has a patient during a shift then there must be a nurse covering that room during that shift.
+
 ## Boundary data
 
 Some patients are already in hospital but are assumed to have had their operation already.
+
+## Converted data
+
+For ease of use, the Optimiser class converts all nurse and patient information into a dictionary. Where appropiate this calls a function to process this information.
+
+### Patients
+```python
+# Patient information
+self.patient_dict = {}
+for patient in data["patients"]:
+    self.patient_dict[patient["id"]] = {
+        "mandatory": self.patient_mandatory(patient),
+        "gender": patient["gender"],
+        "age_group": patient["age_group"],
+        "length_of_stay": patient["length_of_stay"],
+        "workload_produced": patient["workload_produced"],
+        "skill_level_required": patient["skill_level_required"],
+        "surgeon_id": patient["surgeon_id"],
+        "surgery_duration": patient["surgery_duration"],
+        "possible_rooms": self.patient_possible_rooms(patient),
+        "possible_theaters": self.patient_possible_theaters(patient),
+        "possible_admission_days": self.patient_possible_admission_days(patient)
+    }
+```
+
+### Nurses
+```python
+# Nurse information
+self.nurse_dict = {}
+for nurse in data["nurses"]:
+    self.nurse_dict[nurse["id"]] = {
+        "skill_level": nurse["skill_level"],
+        "working_shifts": self.nurse_working_shifts(nurse)
+    }
+```
