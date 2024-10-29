@@ -408,7 +408,7 @@ class Optimiser():
     Hyper-heurisic improvement
     """
     
-    def improvement_hyper_heuristic(self, solution, time_limit = 10, pool_size = 4):
+    def improvement_hyper_heuristic(self, solution, time_limit = 60, pool_size = 4):
         """
         The improvement heuristic applies 4 moves at the same time to the current solution.
         It will never accept an infeasible solution.
@@ -440,8 +440,15 @@ class Optimiser():
             index_new_sols = [(new_solutions[p],p) for p in range(pool_size)]
             with mp.Pool(self.cores) as p:
                 values = p.starmap(self.solution_score,index_new_sols)
+
+            # Selecting best solution of this pool
             temp_best = copy.deepcopy(new_solutions[np.argmin(values)])
             temp_best_value = self.solution_check(temp_best)["Cost"]
+            temp_best_violations = self.solution_check(temp_best)["Violations"]
+
+            # Checking that the best solution is feasible
+            if(temp_best_violations > 0):
+                continue
 
             # Saving best solution
             if(temp_best_value < best_solution_value):
