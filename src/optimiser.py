@@ -408,7 +408,7 @@ class Optimiser():
     Hyper-heurisic improvement
     """
     
-    def improvement_hyper_heuristic(self, solution, time_limit = 60, pool_size = 4):
+    def improvement_hyper_heuristic(self, solution, time_limit = 120, pool_size = 4):
         """
         The improvement heuristic applies 4 moves at the same time to the current solution.
         It will never accept an infeasible solution.
@@ -487,7 +487,7 @@ class Optimiser():
         new_solution = solution
 
         # Select an operator to use
-        operator =  rd.choices([1,2,3])[0]
+        operator =  rd.choices([1,2,3,4,5])[0]
 
         # Operator 1: Insert an unassigned patient
         if(operator == 1):
@@ -501,6 +501,14 @@ class Optimiser():
         if(operator == 3):
             new_solution = self.remove_patient(solution)
             new_solution = self.insert_patient(new_solution)
+
+        # Operator 4: Add a room for nurse
+        if(operator == 4):
+            self.add_nurse_room(solution)
+
+        # Operator 5: Remove a room for nurse
+        if(operator == 5):
+            self.remove_nurse_room(solution)
         
 
         # Return final solution
@@ -573,3 +581,78 @@ class Optimiser():
         return solution
 
     
+    def add_nurse_room(self,solution):
+        # Creating a list of all nurses and selecting one
+        all_nurses = [nurse_id for nurse_id in self.nurse_dict]
+        nurse_id = rd.choices(all_nurses)[0]
+        nurse = self.nurse_dict[nurse_id]
+
+        # Selecting a shift and a room to add
+        all_rooms = [room["id"] for room in self.data["rooms"]]
+        shift = rd.choices(nurse["working_shifts"])[0]
+        room = rd.choices(all_rooms)[0]
+
+        # Updating the working shifts
+        new_nurse_assignments = []
+        for nurse_sol in solution["nurses"]:
+            if(nurse_sol["id"] == nurse_id):
+                updated_solution = False
+                # Try and modify existing assignment
+                for assignment in nurse_sol["assignments"]:
+                    if(assignment["day"] == shift["day"] and
+                       assignment["shift"] == shift["shift"]):
+                        assignment["rooms"].append(room)
+                        assignment["rooms"] = list(set(assignment["rooms"]))
+                        updated_solution = True
+                # If not modifying existing, add new
+                if not updated_solution:
+                    new_assignment = {"day": shift["day"],
+                                      "shift": shift["shift"],
+                                      "rooms": [room]}
+                    nurse_sol["assignments"].append(new_assignment)
+                new_nurse_assignments.append(nurse_sol)
+            else:
+                new_nurse_assignments.append(nurse_sol)
+
+        # Updating the solution
+        solution["nurses"] = new_nurse_assignments
+
+        # Return modified solution
+        return solution
+
+    
+    def remove_nurse_room(self,solution):
+        # Creating a list of all nurses and selecting one
+        all_nurses = [nurse_id for nurse_id in self.nurse_dict]
+        nurse_id = rd.choices(all_nurses)[0]
+
+        # Updating the working shifts
+        new_nurse_assignments = []
+        for nurse_sol in solution["nurses"]:
+            # Check if nurse selected is chosen
+            if(nurse_sol["id"] == nurse_id):
+                # Checking nurse has assignments
+                if(len(nurse_sol["assignments"]) == 0):
+                    new_nurse_assignments.append(nurse_sol)
+                else:
+                    # Choose an assignment
+                    assignment_index = rd.choices(list(range(len(nurse_sol["assignments"]))))[0]
+                    new_assignment = nurse_sol["assignments"][assignment_index]
+                    # Check a room is assigned
+                    if(len(new_assignment["rooms"]) == 0):
+                        new_nurse_assignments.append(nurse_sol)
+                    else:
+                        # Modify rooms
+                        new_assignment["rooms"] = rd.sample(new_assignment["rooms"],
+                                                            k = len(new_assignment["rooms"])-1)
+                        # Modify solution
+                        nurse_sol["assignments"][assignment_index] = new_assignment
+                        new_nurse_assignments.append(nurse_sol)
+            else:
+                new_nurse_assignments.append(nurse_sol)
+
+        # Updating the solution
+        solution["nurses"] = new_nurse_assignments
+        
+        # Return modified solution
+        return solution
