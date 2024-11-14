@@ -3,6 +3,16 @@ test_solutions/*
 solutions/*
 bugs/*
 
+# Vscode
+.vscode/*
+
+# C executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
