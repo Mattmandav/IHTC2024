@@ -1,0 +1,67 @@
+TASKS *****
+- Add graham back to the GitHub
+- Get familiar with the code
+- Make your own working branch
+
+
+STARTING/WORKING SOLUTIONS **
+- Do we want to generate random or multiple starting solutions
+- Do we want to work with multiple solutions in parallel
+
+
+MOVE CREATION ****
+- Need more moves to be used by heuristic
+- Can we add "Common sense" solutions, using state information to inform move selection and parameters
+- Add common sense stuff at the move level (for example, select a specific empty-ish room)
+
+
+MOVE SELECTION ***
+- Currently random selection
+- Sequential decision making for move selection
+- Problems with length of sequences: do we limit?
+- Use Q-learning with the above
+- Learn what moves to do for specific instances
+- Binary vs weighted rewards
+- Subcost implementation
+- Ensure there is some exploration/reward exploration
+- Use a weighted scheme of selection
+- Elbow detection to modify rewards
+
+
+SOLUTION ACCEPTANCE ***
+- Currently improving only
+- Late acceptance
+- Simulated annealing: Probability of accepting a worsening solution based on temperature
+- Record-to-record: Accept a worsening solution within a threshold of current
+- Great deluge: Probability of accepting a worsening solution based on water rising
+- Elbow detection to work out "paradigm" of acceptance
+
+
+POST-OPTIMISATION **
+- Analyse metrics of the state beyond given objective
+- Use this to understand solution and inform next steps
+
+
+BOUNDS *
+- Could be useful for knowing how good we are doing (testing)
+- Concerns about using it in a live setting
+
+
+BENCHMARKING **
+- Make optimisations to the code
+- Do we have a memory limit?
+- Do we have a framework for tuning?
+- Analyse selection of moves to prune bad moves (eventually)
+- Do we rewrite elements in a lower level language?
+
+
+DOCUMENTATION ****
+- Setup some form of documentation (MkDocs)
+
+
+WHO IS DOING WHAT?
+ADAM -  
+BEN - 
+GRAHAM -
+MATTHEW - 
+REBECCA - 
