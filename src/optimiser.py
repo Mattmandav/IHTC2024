@@ -15,6 +15,10 @@ def main(input_file,seed):
     with open(input_file, 'r') as file:
         data = json.load(file)
 
+    # Check if temp folder exists, make it if not
+    if not os.path.exists("src/temp_solutions"):
+        os.makedirs("src/temp_solutions")# Check if temp folder exists, make it if not
+
     # Put the data into the optimiser class
     optimisation_object = Optimiser(data)
 
@@ -22,6 +26,10 @@ def main(input_file,seed):
     solution = optimisation_object.optimise(method = "greedy")
     solution = optimisation_object.improvement_hyper_heuristic(solution)
     print(optimisation_object.solution_check(solution))
+
+    # Remove the temporary solutions folder
+    if os.path.exists("src/temp_solutions"):
+        os.rmdir("src/temp_solutions")
 
     return solution
 
@@ -136,7 +144,7 @@ class Optimiser():
         cost = 0
         reasons = []
         result = subprocess.run(
-            ['.\IHTP_Validator', 'src/temp_solutions/data{}.json'.format(core_name), 'src/temp_solutions/solution{}.json'.format(core_name)],
+            ['./IHTP_Validator', 'src/temp_solutions/data{}.json'.format(core_name), 'src/temp_solutions/solution{}.json'.format(core_name)],
             capture_output = True, # Python >= 3.7 only
             text = True # Python >= 3.7 only
             )

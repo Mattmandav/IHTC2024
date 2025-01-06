@@ -2,6 +2,7 @@ data/*
 test_solutions/*
 solutions/*
 bugs/*
+IHTP_Validator
 
 # Vscode
 .vscode/*
