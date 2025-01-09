@@ -495,7 +495,7 @@ class Optimiser():
         new_solution = solution
 
         # Select an operator to use
-        operator =  rd.choices([1,2,3,4,5])[0]
+        operator =  rd.choices([1,2,3,4,5,6,7,8])[0]
 
         # Operator 1: Insert an unassigned patient
         if(operator == 1):
@@ -512,12 +512,23 @@ class Optimiser():
 
         # Operator 4: Add a room for nurse
         if(operator == 4):
-            self.add_nurse_room(solution)
+            new_solution = self.add_nurse_room(solution)
 
         # Operator 5: Remove a room for nurse
         if(operator == 5):
-            self.remove_nurse_room(solution)
+            new_solution = self.remove_nurse_room(solution)
+
+        # Operator 6: Change a patients room
+        if(operator == 6):
+            new_solution = self.change_patient_room(solution)
         
+        # Operator 7: Change a patients admission day
+        if(operator == 7):
+            new_solution = self.change_patient_admission(solution)
+
+        # OPerator 8: Change a patients 
+        if(operator == 8):
+            new_solution = self.change_patient_theater(solution)
 
         # Return final solution
         return new_solution
@@ -560,7 +571,7 @@ class Optimiser():
         
         # Return updated solution
         return solution
-    
+
 
     def remove_patient(self,solution):
         """
@@ -586,6 +597,78 @@ class Optimiser():
         solution["patients"] = new_patients
 
         # Return modified solution
+        return solution
+    
+
+    def change_patient_room(self,solution):
+        # Get all of the assigned patients
+        assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+        if(len(assigned_patients) == 0):
+            return solution
+
+        # Selecting a patient to move
+        patient_to_move = rd.choices(assigned_patients)[0]
+
+        # Iterate through patients until find entry
+        for p in solution["patients"]:
+            if(p["id"] == patient_to_move):
+                patient_rooms = self.patient_dict[patient_to_move]["possible_rooms"]
+                current_room = p["room"]
+                room_options = list(set(patient_rooms) - set([current_room]))
+                if(len(room_options) != 0):
+                    new_room = rd.choices(room_options)[0]
+                    p["room"] = new_room
+                break
+        
+        # Return modifed solution
+        return solution
+    
+
+    def change_patient_admission(self,solution):
+        # Get all of the assigned patients
+        assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+        if(len(assigned_patients) == 0):
+            return solution
+
+        # Selecting a patient to move
+        patient_to_move = rd.choices(assigned_patients)[0]
+
+        # Iterate through patients until find entry
+        for p in solution["patients"]:
+            if(p["id"] == patient_to_move):
+                patient_days = self.patient_dict[patient_to_move]["possible_admission_days"]
+                current_day= p["admission_day"]
+                day_options = list(set(patient_days) - set([current_day]))
+                if(len(day_options) != 0):
+                    new_day = rd.choices(day_options)[0]
+                    p["admission_day"] = new_day
+                break
+        
+        # Return modifed solution
+        return solution
+    
+
+    def change_patient_theater(self,solution):
+        # Get all of the assigned patients
+        assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+        if(len(assigned_patients) == 0):
+            return solution
+
+        # Selecting a patient to move
+        patient_to_move = rd.choices(assigned_patients)[0]
+
+        # Iterate through patients until find entry
+        for p in solution["patients"]:
+            if(p["id"] == patient_to_move):
+                patient_theaters = self.patient_dict[patient_to_move]["possible_theaters"]
+                current_theater = p["operating_theater"]
+                theater_options = list(set(patient_theaters) - set([current_theater]))
+                if(len(theater_options) != 0):
+                    new_theater = rd.choices(theater_options)[0]
+                    p["operating_theater"] = new_theater
+                break
+        
+        # Return modifed solution
         return solution
 
     
