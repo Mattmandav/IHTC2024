@@ -9,18 +9,25 @@ import random as rd
 
 
 # Main optimisation function
-def main(input_file,seed):
+def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
+    # Starting function timer
+    time_start = time.time()
 
     # Open and read the JSON file
     with open(input_file, 'r') as file:
         data = json.load(file)
+
+    # Set seed for optimisation
+    rd.seed(seed)
 
     # Check if temp folder exists, make it if not
     if not os.path.exists("src/temp_solutions"):
         os.makedirs("src/temp_solutions")# Check if temp folder exists, make it if not
 
     # Put the data into the optimiser class
-    optimisation_object = Optimiser(data)
+    optimisation_object = Optimiser(data,
+                                    time_limit = time_limit,
+                                    time_tolerance = time_tolerance)
 
     # Run an optimisation method
     solution = optimisation_object.optimise(method = "greedy")
@@ -31,15 +38,22 @@ def main(input_file,seed):
     if os.path.exists("src/temp_solutions"):
         os.rmdir("src/temp_solutions")
 
+    # Reporting process
+    print(f"Main function completed in {round(time.time() - time_start,2)} seconds!")
+    print()
+
     return solution
 
 
 # Optimisation class
 class Optimiser():
-    def __init__(self,data):
-        # Saving the extracted JSON
+    def __init__(self, data, time_limit = 60, time_tolerance = 5):
+        # Key values for optimiser
         self.data = data
         self.cores = 4
+        self.remaining_time = time_limit
+        self.time_start = time.time()
+        self.time_tolerance = time_tolerance
 
         # Extracting key information
         self.ndays = data["days"]
@@ -87,6 +101,8 @@ class Optimiser():
                 "skill_level": nurse["skill_level"],
                 "working_shifts": self.nurse_working_shifts(nurse)
             }
+
+        self.remaining_time = self.remaining_time - (time.time() - self.time_start)
     
 
     """
@@ -220,7 +236,6 @@ class Optimiser():
         - MandatoryUnscheduledPatients
         - UncoveredRoom
         """
-
         # Creating and sorting a list of mandatory patients (earliest admission date then if same date patient with tighter dates)
         all_mandatory_patients = [(patient_id,self.patient_dict[patient_id]["possible_admission_days"][0],len(self.patient_dict[patient_id]["possible_admission_days"]))
                                    for patient_id in self.patient_dict 
@@ -229,6 +244,9 @@ class Optimiser():
         all_mandatory_patients = [p[0] for p in all_mandatory_patients]
         
         while True:
+            # Timing iteration of patient assignment
+            time_start = time.time()
+
             # Preallocating solution
             solution = {"patients": [], "nurses": []}
 
@@ -276,11 +294,21 @@ class Optimiser():
             not_allocated = sorted(not_allocated, key=lambda x: (x[1],x[2]))
             not_allocated = [p[0] for p in not_allocated]
 
+            # Record time taken
+            self.remaining_time = self.remaining_time - (time.time() - time_start)
+
             # Loop again if not all patients are allocated
             if(len(not_allocated) == 0):
                 break
+            # If not enough time return current solution
+            elif(self.remaining_time <= self.time_tolerance):
+                print("Exiting greedy algo due to time limit")
+                return solution
             else:
                 all_mandatory_patients = not_allocated + admitted_mandatory_patients
+
+        # Timing nurse addition and non-mandatory patients
+        time_start = time.time()
 
         # Iterating over non-mandatory patients
         all_non_mandatory_patients = [patient_id for patient_id in self.patient_dict if not self.patient_dict[patient_id]["mandatory"]]
@@ -373,6 +401,9 @@ class Optimiser():
             if(len(nurse_allocation[nurse_id]["assignments"]) > 0):
                 solution["nurses"].append(nurse_allocation[nurse_id])
 
+        # Recording time
+        self.remaining_time = self.remaining_time - (time.time() - time_start)
+
         return solution
     
 
@@ -416,7 +447,7 @@ class Optimiser():
     Hyper-heurisic improvement
     """
     
-    def improvement_hyper_heuristic(self, solution, time_limit = 120, pool_size = 4):
+    def improvement_hyper_heuristic(self, solution, pool_size = 4):
         """
         The improvement heuristic applies 4 moves at the same time to the current solution.
         It will never accept an infeasible solution.
@@ -425,16 +456,22 @@ class Optimiser():
         p% chance if the solution is not improving.
         The best solution is always saved.
         """
+        # Checking if we have time to improve solution
+        if(self.remaining_time <= self.time_tolerance):
+            return solution
+        
         # Preallocating features
-        print("Starting hyper-heuristic (Time limit: {}s)".format(time_limit))
+        print(f"Starting hyper-heuristic (Remaining time: {round(self.remaining_time,2)} seconds)")
         best_solution = solution
         best_solution_value = self.solution_check(solution)["Cost"]
         current_solution = solution
         current_solution_value = self.solution_check(solution)["Cost"]
-        t0 = time.time()
         
         # Applying heuristic
-        while time.time() - t0 < time_limit:
+        while self.remaining_time > self.time_tolerance:
+            # Timing iteration
+            time_start = time.time()
+
             # Making copies of solution
             solution_pool = []
             for p in range(pool_size):
@@ -469,6 +506,9 @@ class Optimiser():
                 current_solution = copy.deepcopy(temp_best)
                 current_solution_value = copy.deepcopy(temp_best_value)
 
+            # Updating the time remaining
+            self.remaining_time = self.remaining_time - (time.time() - time_start)
+
         # Return the best solution
         return best_solution
 
@@ -495,7 +535,7 @@ class Optimiser():
         new_solution = solution
 
         # Select an operator to use
-        operator =  rd.choices([1,2,3,4,5])[0]
+        operator =  rd.choices([1,2,3,4,5,6,7,8])[0]
 
         # Operator 1: Insert an unassigned patient
         if(operator == 1):
@@ -512,12 +552,23 @@ class Optimiser():
 
         # Operator 4: Add a room for nurse
         if(operator == 4):
-            self.add_nurse_room(solution)
+            new_solution = self.add_nurse_room(solution)
 
         # Operator 5: Remove a room for nurse
         if(operator == 5):
-            self.remove_nurse_room(solution)
+            new_solution = self.remove_nurse_room(solution)
+
+        # Operator 6: Change a patients room
+        if(operator == 6):
+            new_solution = self.change_patient_room(solution)
         
+        # Operator 7: Change a patients admission day
+        if(operator == 7):
+            new_solution = self.change_patient_admission(solution)
+
+        # OPerator 8: Change a patients 
+        if(operator == 8):
+            new_solution = self.change_patient_theater(solution)
 
         # Return final solution
         return new_solution
@@ -560,7 +611,7 @@ class Optimiser():
         
         # Return updated solution
         return solution
-    
+
 
     def remove_patient(self,solution):
         """
@@ -586,6 +637,78 @@ class Optimiser():
         solution["patients"] = new_patients
 
         # Return modified solution
+        return solution
+    
+
+    def change_patient_room(self,solution):
+        # Get all of the assigned patients
+        assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+        if(len(assigned_patients) == 0):
+            return solution
+
+        # Selecting a patient to move
+        patient_to_move = rd.choices(assigned_patients)[0]
+
+        # Iterate through patients until find entry
+        for p in solution["patients"]:
+            if(p["id"] == patient_to_move):
+                patient_rooms = self.patient_dict[patient_to_move]["possible_rooms"]
+                current_room = p["room"]
+                room_options = list(set(patient_rooms) - set([current_room]))
+                if(len(room_options) != 0):
+                    new_room = rd.choices(room_options)[0]
+                    p["room"] = new_room
+                break
+        
+        # Return modifed solution
+        return solution
+    
+
+    def change_patient_admission(self,solution):
+        # Get all of the assigned patients
+        assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+        if(len(assigned_patients) == 0):
+            return solution
+
+        # Selecting a patient to move
+        patient_to_move = rd.choices(assigned_patients)[0]
+
+        # Iterate through patients until find entry
+        for p in solution["patients"]:
+            if(p["id"] == patient_to_move):
+                patient_days = self.patient_dict[patient_to_move]["possible_admission_days"]
+                current_day= p["admission_day"]
+                day_options = list(set(patient_days) - set([current_day]))
+                if(len(day_options) != 0):
+                    new_day = rd.choices(day_options)[0]
+                    p["admission_day"] = new_day
+                break
+        
+        # Return modifed solution
+        return solution
+    
+
+    def change_patient_theater(self,solution):
+        # Get all of the assigned patients
+        assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+        if(len(assigned_patients) == 0):
+            return solution
+
+        # Selecting a patient to move
+        patient_to_move = rd.choices(assigned_patients)[0]
+
+        # Iterate through patients until find entry
+        for p in solution["patients"]:
+            if(p["id"] == patient_to_move):
+                patient_theaters = self.patient_dict[patient_to_move]["possible_theaters"]
+                current_theater = p["operating_theater"]
+                theater_options = list(set(patient_theaters) - set([current_theater]))
+                if(len(theater_options) != 0):
+                    new_theater = rd.choices(theater_options)[0]
+                    p["operating_theater"] = new_theater
+                break
+        
+        # Return modifed solution
         return solution
 
     

@@ -14,6 +14,8 @@ if __name__ == "__main__":
         parser.add_argument('input_file',type=str,)
         parser.add_argument('--seed',type=int,default=982032024)
         parser.add_argument('--output_folder',type=str,default="")
+        parser.add_argument('--time_limit',type=float,default="60")
+        parser.add_argument('--time_tolerance',type=float,default="5")
         args = parser.parse_args()
         
         # Extracting filename
@@ -31,7 +33,10 @@ if __name__ == "__main__":
                 raise ValueError("Invalid output folder")
             
         # Running optimisation
-        solution = main(args.input_file,args.seed)
+        solution = main(args.input_file,
+                        seed = args.seed,
+                        time_limit = args.time_limit,
+                        time_tolerance = args.time_tolerance)
 
         # Saving solution
         with open("{}sol_{}.json".format(args.output_folder,filename), "w") as outfile: 
