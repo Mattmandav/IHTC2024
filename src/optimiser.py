@@ -9,18 +9,25 @@ import random as rd
 
 
 # Main optimisation function
-def main(input_file,seed):
+def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
+    # Starting function timer
+    time_start = time.time()
 
     # Open and read the JSON file
     with open(input_file, 'r') as file:
         data = json.load(file)
+
+    # Set seed for optimisation
+    rd.seed(seed)
 
     # Check if temp folder exists, make it if not
     if not os.path.exists("src/temp_solutions"):
         os.makedirs("src/temp_solutions")# Check if temp folder exists, make it if not
 
     # Put the data into the optimiser class
-    optimisation_object = Optimiser(data)
+    optimisation_object = Optimiser(data,
+                                    time_limit = time_limit,
+                                    time_tolerance = time_tolerance)
 
     # Run an optimisation method
     solution = optimisation_object.optimise(method = "greedy")
@@ -31,15 +38,22 @@ def main(input_file,seed):
     if os.path.exists("src/temp_solutions"):
         os.rmdir("src/temp_solutions")
 
+    # Reporting process
+    print(f"Main function completed in {round(time.time() - time_start,2)} seconds!")
+    print()
+
     return solution
 
 
 # Optimisation class
 class Optimiser():
-    def __init__(self,data):
-        # Saving the extracted JSON
+    def __init__(self, data, time_limit = 60, time_tolerance = 5):
+        # Key values for optimiser
         self.data = data
         self.cores = 4
+        self.remaining_time = time_limit
+        self.time_start = time.time()
+        self.time_tolerance = time_tolerance
 
         # Extracting key information
         self.ndays = data["days"]
@@ -87,6 +101,8 @@ class Optimiser():
                 "skill_level": nurse["skill_level"],
                 "working_shifts": self.nurse_working_shifts(nurse)
             }
+
+        self.remaining_time = self.remaining_time - (time.time() - self.time_start)
     
 
     """
@@ -220,7 +236,6 @@ class Optimiser():
         - MandatoryUnscheduledPatients
         - UncoveredRoom
         """
-
         # Creating and sorting a list of mandatory patients (earliest admission date then if same date patient with tighter dates)
         all_mandatory_patients = [(patient_id,self.patient_dict[patient_id]["possible_admission_days"][0],len(self.patient_dict[patient_id]["possible_admission_days"]))
                                    for patient_id in self.patient_dict 
@@ -229,6 +244,9 @@ class Optimiser():
         all_mandatory_patients = [p[0] for p in all_mandatory_patients]
         
         while True:
+            # Timing iteration of patient assignment
+            time_start = time.time()
+
             # Preallocating solution
             solution = {"patients": [], "nurses": []}
 
@@ -276,11 +294,21 @@ class Optimiser():
             not_allocated = sorted(not_allocated, key=lambda x: (x[1],x[2]))
             not_allocated = [p[0] for p in not_allocated]
 
+            # Record time taken
+            self.remaining_time = self.remaining_time - (time.time() - time_start)
+
             # Loop again if not all patients are allocated
             if(len(not_allocated) == 0):
                 break
+            # If not enough time return current solution
+            elif(self.remaining_time <= self.time_tolerance):
+                print("Exiting greedy algo due to time limit")
+                return solution
             else:
                 all_mandatory_patients = not_allocated + admitted_mandatory_patients
+
+        # Timing nurse addition and non-mandatory patients
+        time_start = time.time()
 
         # Iterating over non-mandatory patients
         all_non_mandatory_patients = [patient_id for patient_id in self.patient_dict if not self.patient_dict[patient_id]["mandatory"]]
@@ -373,6 +401,9 @@ class Optimiser():
             if(len(nurse_allocation[nurse_id]["assignments"]) > 0):
                 solution["nurses"].append(nurse_allocation[nurse_id])
 
+        # Recording time
+        self.remaining_time = self.remaining_time - (time.time() - time_start)
+
         return solution
     
 
@@ -416,7 +447,7 @@ class Optimiser():
     Hyper-heurisic improvement
     """
     
-    def improvement_hyper_heuristic(self, solution, time_limit = 120, pool_size = 4):
+    def improvement_hyper_heuristic(self, solution, pool_size = 4):
         """
         The improvement heuristic applies 4 moves at the same time to the current solution.
         It will never accept an infeasible solution.
@@ -425,16 +456,22 @@ class Optimiser():
         p% chance if the solution is not improving.
         The best solution is always saved.
         """
+        # Checking if we have time to improve solution
+        if(self.remaining_time <= self.time_tolerance):
+            return solution
+        
         # Preallocating features
-        print("Starting hyper-heuristic (Time limit: {}s)".format(time_limit))
+        print(f"Starting hyper-heuristic (Remaining time: {round(self.remaining_time,2)} seconds)")
         best_solution = solution
         best_solution_value = self.solution_check(solution)["Cost"]
         current_solution = solution
         current_solution_value = self.solution_check(solution)["Cost"]
-        t0 = time.time()
         
         # Applying heuristic
-        while time.time() - t0 < time_limit:
+        while self.remaining_time > self.time_tolerance:
+            # Timing iteration
+            time_start = time.time()
+
             # Making copies of solution
             solution_pool = []
             for p in range(pool_size):
@@ -468,6 +505,9 @@ class Optimiser():
             if(temp_best_value < current_solution_value):
                 current_solution = copy.deepcopy(temp_best)
                 current_solution_value = copy.deepcopy(temp_best_value)
+
+            # Updating the time remaining
+            self.remaining_time = self.remaining_time - (time.time() - time_start)
 
         # Return the best solution
         return best_solution
