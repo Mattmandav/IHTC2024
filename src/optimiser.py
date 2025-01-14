@@ -6,6 +6,7 @@ import multiprocessing as mp
 import copy
 import numpy as np
 import random as rd
+import QLearner #not sure why this has a squigly line
 
 
 # Main optimisation function
@@ -101,6 +102,10 @@ class Optimiser():
                 "skill_level": nurse["skill_level"],
                 "working_shifts": self.nurse_working_shifts(nurse)
             }
+
+        #Not sure if this should go here so please delete if needs be!
+        #need self value for the qlearner agent, so this is can be called later on
+        self.agent = QLearner()
 
         self.remaining_time = self.remaining_time - (time.time() - self.time_start)
     
@@ -573,7 +578,53 @@ class Optimiser():
         # Return final solution
         return new_solution
     
-    
+    """
+    Q-Learning for the heuristic sequence selection within the Hyper-Heuristic
+    """
+
+    #Create a Q-table for given state action size
+    def create_qtable(self, max_sequence_length,base_learn_rate = 0.1, discount_factor = 1,starting_q_value = 0):
+        """
+        This function creates the q table for the classes Q-learning agent
+
+        Parameters
+        ----------
+            max_sequence_length: int
+                maximum number of the sequence of LLHs
+            
+            base_learn_rate: float
+                step size/learn rate of the Q-learning algorithm
+                takes value between [0,1]
+                (defualt is 0.1)
+
+            discount_factor: float
+                discount factor of the Q-learning algorithm
+                takes value between [0,1]
+                (default is 1.0)
+                
+            starting_q_value: float
+                value which whole qtable will take, allows for an optomistic or pessemistic non-informative intial q-table
+                (default is 0)
+        """
+
+        #set state space
+        #(sequence length, number of low-level Heuristics)
+        self.agent.setNStates((max_sequence_length,8))
+
+        #set action space - need to be a tuple
+        #Number of LLHs + 1, for the action of ending the sequence
+        self.agent.setNActions(8 + 1)
+
+        #set base learn rate
+        self.agent.setLearnRate(base_learn_rate)
+
+        #set discount factor for lookahead term in qlearning
+        self.agent.setDiscountFactor(discount_factor)
+
+        #Using previous information now initialise the q table
+        self.agent.initialiseQTable(starting_q_value)
+
+
     """
     Individual adjustments to the solution
     """
