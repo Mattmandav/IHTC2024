@@ -6,7 +6,8 @@ import multiprocessing as mp
 import copy
 import numpy as np
 import random as rd
-
+import pandas as pd
+import matplotlib.pyplot as plt
 
 # Main optimisation function
 def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
@@ -26,12 +27,13 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
 
     # Put the data into the optimiser class
     optimisation_object = Optimiser(data,
+                                    input_file = input_file,
                                     time_limit = time_limit,
                                     time_tolerance = time_tolerance)
 
     # Run an optimisation method
     solution = optimisation_object.optimise(method = "greedy")
-    solution = optimisation_object.improvement_hyper_heuristic(solution)
+    solution, costs = optimisation_object.improvement_hyper_heuristic(solution)
     print(optimisation_object.solution_check(solution))
 
     # Remove the temporary solutions folder
@@ -42,12 +44,11 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
     print(f"Main function completed in {round(time.time() - time_start,2)} seconds!")
     print()
 
-    return solution
-
+    return solution, costs
 
 # Optimisation class
 class Optimiser():
-    def __init__(self, data, time_limit = 60, time_tolerance = 5):
+    def __init__(self, data, input_file, time_limit = 60, time_tolerance = 5):
         # Key values for optimiser
         self.data = data
         self.cores = 4
@@ -104,7 +105,11 @@ class Optimiser():
 
         self.remaining_time = self.remaining_time - (time.time() - self.time_start)
     
-
+        # Info on collecting cost info
+        self.iter_num = 0
+        self.input_file = input_file
+        self.costs = []
+        
     """
     Processing functions
     """
@@ -174,7 +179,7 @@ class Optimiser():
             # Get cost
             if("Total cost" in line):
                 cost = int(line.split()[-1])
-        
+
         # Clean up temp folder
         os.remove("src/temp_solutions/data{}.json".format(core_name))
         os.remove("src/temp_solutions/solution{}.json".format(core_name))
@@ -182,7 +187,29 @@ class Optimiser():
         # Return violations and cost
         return {"Violations": violations, "Cost": cost, "Reasons": reasons}
 
+    def solution_collect_costs(self, solution, core_name = ""):
+        # Export data
+        with open("src/temp_solutions/data{}.json".format(core_name), "w") as outfile: 
+            json.dump(self.data, outfile, indent=2)
+        # Export solution
+        with open("src/temp_solutions/solution{}.json".format(core_name), "w") as outfile: 
+            json.dump(solution, outfile, indent=2)
 
+        result = subprocess.run(
+            ['./IHTP_Validator', 'src/temp_solutions/data{}.json'.format(core_name), 'src/temp_solutions/solution{}.json'.format(core_name)],
+            capture_output = True, # Python >= 3.7 only
+            text = True # Python >= 3.7 only
+            )
+        for line in result.stdout.splitlines():
+            if('(' in line and '.' in line):
+                data = [self.input_file, float(self.iter_num), line.split('.')[0], float(line.split('.')[-1].split()[0])]
+                self.costs.append(data)
+
+        # Clean up temp folder
+        os.remove("src/temp_solutions/data{}.json".format(core_name))
+        os.remove("src/temp_solutions/solution{}.json".format(core_name))
+
+                
     def solution_score(self, solution, core_name):
         values = self.solution_check(solution, core_name=core_name)
         if(values["Violations"] > 0):
@@ -497,20 +524,27 @@ class Optimiser():
 
             # Saving best solution
             if(temp_best_value < best_solution_value):
-                print("New best solution found! Score:",temp_best_value)
+                #print("New best solution found! Score:",temp_best_value)
                 best_solution = copy.deepcopy(temp_best)
                 best_solution_value = copy.deepcopy(temp_best_value)
+
+                # Save costs data
+                self.iter_num += 1
+                self.solution_collect_costs(temp_best)
 
             # Deciding whether to accept new solution as current solution
             if(temp_best_value < current_solution_value):
                 current_solution = copy.deepcopy(temp_best)
                 current_solution_value = copy.deepcopy(temp_best_value)
-
+                
             # Updating the time remaining
             self.remaining_time = self.remaining_time - (time.time() - time_start)
 
+        # print costs curve
+        df = self.costs
+        
         # Return the best solution
-        return best_solution
+        return best_solution, df
 
     
     def solution_adjustment(self,solution):
