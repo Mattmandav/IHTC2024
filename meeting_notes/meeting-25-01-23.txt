@@ -1,0 +1,38 @@
+ACTIONS
+
+Adam
+- Try test instances
+- Hook up Q-learning
+- Updating the Q values in the check solution function
+- Returning the operator choice to the solution adjustment function
+
+
+Ben
+- Change some of the variables to global variables
+- Update the documention on how to operate the repo (.md file)
+- Laise with Adam to factor run-time of operator into reward
+- Idiot-proof the repo
+
+
+Matt
+- Work out deadlines for EUROS and competition
+- Find a sensible way of counting the number functions/operators (might involve moving these)
+- Update formal documentation (.tex file)
+- Objective trajectory plots
+
+
+Graham
+- Tidy up sub-objective record keeping
+- More investigation about how to reduce the more problematic sub-objectives
+- Write moves based on this investigation
+
+
+Rebecca
+- Look at acceptance policies
+- Decide how this should be implemented
+- Investigate having a diverse solution pool instead
+
+
+GENERAL TASKS TO THINK ABOUT
+- Bound finding for our own satisfaction
+- Problem solving style session
