@@ -559,6 +559,18 @@ class Optimiser():
         # Select an operator to use
         operator =  rd.choices([1,2,3,4,5,6,7,8])[0]
 
+        #epsilon-Greedy policy for picking actions dervied from Q
+        # #Magic number here - can be changed and switched to a better regime
+        # explore_prob = 0.1
+        # #e.g. decaying epslion-greedy, UCB (Book: warren B. Powell Approximate Dynamic Programming has some more in)
+        # if np.random.uniform() < explore_prob:
+        #     #Explore Randomly
+        #     operator =  rd.choices([1,2,3,4,5,6,7,8])[0]
+        # else:
+        #     #Exploit best action
+        #     self.agent.getBestAction()
+
+
         # Operator 1: Insert an unassigned patient
         if(operator == 1):
             new_solution = self.insert_patient(solution)
