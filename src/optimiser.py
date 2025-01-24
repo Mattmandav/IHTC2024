@@ -6,7 +6,7 @@ import multiprocessing as mp
 import copy
 import numpy as np
 import random as rd
-import QLearner #not sure why this has a squigly line
+from src import QLearner #not sure why this has a squigly line
 
 
 # Main optimisation function
@@ -606,6 +606,8 @@ class Optimiser():
                 value which whole qtable will take, allows for an optomistic or pessemistic non-informative intial q-table
                 (default is 0)
         """
+
+        ### CHANGE THIS IF NUMBER OF OPERATORS CHANGE!!!!!
 
         #set state space
         #(sequence length, number of low-level Heuristics)
