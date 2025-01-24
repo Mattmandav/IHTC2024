@@ -103,9 +103,25 @@ class Optimiser():
                 "working_shifts": self.nurse_working_shifts(nurse)
             }
 
-        #Not sure if this should go here so please delete if needs be!
-        #need self value for the qlearner agent, so this is can be called later on
-        self.agent = QLearner()
+
+        max_sequence_length,number_of_low_level_heuristics = None,None
+        base_learn_rate = 0.1
+        discount_factor = 1
+        #need self object for the qlearner agent, so this is can be called later on
+        self.agent = QLearner(
+            n_states = (max_sequence_length,number_of_low_level_heuristics), #need pointers for these 2 values
+            n_actions = number_of_low_level_heuristics + 1, #Plus one to signfy the action of ending the sequence of LLHs
+            learn_rate = base_learn_rate,
+            discount_factor = discount_factor,
+            q_table = None,
+            current_state = None,
+            new_state = None     
+        )
+
+        #Initialise the qtable using inputs above
+        #Default q_value is 0.0, set to 1.0 to be optimistic (if using 1-0 reward)
+        starting_q_value = 1.0
+        self.agent.initialiseQTable(q_value = starting_q_value)
 
         self.remaining_time = self.remaining_time - (time.time() - self.time_start)
     
@@ -582,51 +598,7 @@ class Optimiser():
     Q-Learning for the heuristic sequence selection within the Hyper-Heuristic
     """
 
-    #Create a Q-table for given state action size
-    def create_qtable(self, max_sequence_length,base_learn_rate = 0.1, discount_factor = 1,starting_q_value = 0):
-        """
-        This function creates the q table for the classes Q-learning agent
-
-        Parameters
-        ----------
-            max_sequence_length: int
-                maximum number of the sequence of LLHs
-            
-            base_learn_rate: float
-                step size/learn rate of the Q-learning algorithm
-                takes value between [0,1]
-                (defualt is 0.1)
-
-            discount_factor: float
-                discount factor of the Q-learning algorithm
-                takes value between [0,1]
-                (default is 1.0)
-                
-            starting_q_value: float
-                value which whole qtable will take, allows for an optomistic or pessemistic non-informative intial q-table
-                (default is 0)
-        """
-
-        ### CHANGE THIS IF NUMBER OF OPERATORS CHANGE!!!!!
-
-        #set state space
-        #(sequence length, number of low-level Heuristics)
-        self.agent.setNStates((max_sequence_length,8))
-
-        #set action space - need to be a tuple
-        #Number of LLHs + 1, for the action of ending the sequence
-        self.agent.setNActions(8 + 1)
-
-        #set base learn rate
-        self.agent.setLearnRate(base_learn_rate)
-
-        #set discount factor for lookahead term in qlearning
-        self.agent.setDiscountFactor(discount_factor)
-
-        #Using previous information now initialise the q table
-        self.agent.initialiseQTable(starting_q_value)
-
-
+    
     """
     Individual adjustments to the solution
     """
