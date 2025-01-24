@@ -110,8 +110,8 @@ class Optimiser():
         discount_factor = 1
         #need self object for the qlearner agent, so this is can be called later on
         self.agent = QLearner.QLearner(
-            n_states = (max_sequence_length,number_of_low_level_heuristics), #need pointers for these 2 values
-            n_actions = number_of_low_level_heuristics + 1, #Plus one to signfy the action of ending the sequence of LLHs
+            n_states = (max_sequence_length,number_of_low_level_heuristics+2), #need pointers for these 2 values
+            n_actions = number_of_low_level_heuristics + 2, #Plus one to signfy the action of ending the sequence of LLHs
             learn_rate = base_learn_rate,
             discount_factor = discount_factor,
             q_table = None,
@@ -518,7 +518,7 @@ class Optimiser():
                 continue
 
             # Saving best solution
-            if(temp_best_value < best_solution_value):
+            if(temp_best_value < best_solution_value):             
                 print("New best solution found! Score:",temp_best_value)
                 best_solution = copy.deepcopy(temp_best)
                 best_solution_value = copy.deepcopy(temp_best_value)
@@ -568,13 +568,17 @@ class Optimiser():
         if np.random.uniform() < explore_prob:
             #Explore Randomly
             operator =  rd.choices([1,2,3,4,5,6,7,8])[0]
-            self.agent.setNewState((1,operator))
         else:
             #Exploit best action
             operator = self.agent.getBestAction()
-            self.agent.setNewState((1,operator))
+        
+        #set a dummy new state to get into the while loop
+        self.agent.setNewState((1,None))
 
-        while operator != 0 and self.agent.getNewState()[0] <= max_sequence_length:
+        #hold current score to evaluate reward later on
+        current_score = self.solution_check(solution)["Cost"]
+
+        while operator != 0 and self.agent.getNewState()[0] <= max_sequence_length: 
 
             # Operator 1: Insert an unassigned patient
             if(operator == 1):
@@ -608,9 +612,23 @@ class Optimiser():
             # OPerator 8: Change a patients 
             if(operator == 8):
                 new_solution = self.change_patient_theater(solution)
+            
+            #New state is now length of the sequence and last LLH chosen
+            self.agent.setNewState((self.agent.getCurrentState()[0] + 1,operator))
 
+            #evaluate new solution score
+            new_score = self.solution_check(new_solution)["Cost"]
+            
+            #evaluate reward = move in score for qlearner
+            your_mums_reward = new_score - current_score
+
+            #Q-learning update
+            self.agent.QLearningUpdate(action = operator, reward = your_mums_reward)
+
+            #New state now becomes the current state
             self.agent.setCurrentState(self.agent.getNewState())
 
+            current_score = new_score
             #apply the epsilon-greedy policy again
             if np.random.uniform() < explore_prob:
                 #Explore Randomly
