@@ -104,11 +104,12 @@ class Optimiser():
             }
 
 
-        max_sequence_length,number_of_low_level_heuristics = None,None
+        max_sequence_length = 1 # putting one here to allow for test case to be ran
+        number_of_low_level_heuristics = 1 # putting one here to allow for test case to be ran
         base_learn_rate = 0.1
         discount_factor = 1
         #need self object for the qlearner agent, so this is can be called later on
-        self.agent = QLearner(
+        self.agent = QLearner.QLearner(
             n_states = (max_sequence_length,number_of_low_level_heuristics), #need pointers for these 2 values
             n_actions = number_of_low_level_heuristics + 1, #Plus one to signfy the action of ending the sequence of LLHs
             learn_rate = base_learn_rate,
