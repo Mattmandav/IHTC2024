@@ -104,8 +104,8 @@ class Optimiser():
             }
 
 
-        max_sequence_length = 1 # putting one here to allow for test case to be ran
-        number_of_low_level_heuristics = 1 # putting one here to allow for test case to be ran
+        max_sequence_length = 10 # putting one here to allow for test case to be ran
+        number_of_low_level_heuristics = 8 # putting one here to allow for test case to be ran
         base_learn_rate = 0.1
         discount_factor = 1
         #need self object for the qlearner agent, so this is can be called later on
@@ -555,54 +555,74 @@ class Optimiser():
         - Remove a shift
         """
         new_solution = solution
-
+        number_of_low_level_heuristics = 8
+        max_sequence_length = 10
+        self.agent.setCurrentState((0, number_of_low_level_heuristics + 1))
         # Select an operator to use
-        operator =  rd.choices([1,2,3,4,5,6,7,8])[0]
+        # operator =  rd.choices([1,2,3,4,5,6,7,8])[0]
 
         #epsilon-Greedy policy for picking actions dervied from Q
-        # #Magic number here - can be changed and switched to a better regime
-        # explore_prob = 0.1
-        # #e.g. decaying epslion-greedy, UCB (Book: warren B. Powell Approximate Dynamic Programming has some more in)
-        # if np.random.uniform() < explore_prob:
-        #     #Explore Randomly
-        #     operator =  rd.choices([1,2,3,4,5,6,7,8])[0]
-        # else:
-        #     #Exploit best action
-        #     self.agent.getBestAction()
+        #Magic number here - can be changed and switched to a better regime
+        explore_prob = 0.1
+        #e.g. decaying epslion-greedy, UCB (Book: warren B. Powell Approximate Dynamic Programming has some more in)
+        if np.random.uniform() < explore_prob:
+            #Explore Randomly
+            operator =  rd.choices([1,2,3,4,5,6,7,8])[0]
+            self.agent.setNewState((1,operator))
+        else:
+            #Exploit best action
+            operator = self.agent.getBestAction()
+            self.agent.setNewState((1,operator))
 
+        while operator != 0 and self.agent.getNewState()[0] <= max_sequence_length:
 
-        # Operator 1: Insert an unassigned patient
-        if(operator == 1):
-            new_solution = self.insert_patient(solution)
+            # Operator 1: Insert an unassigned patient
+            if(operator == 1):
+                new_solution = self.insert_patient(solution)
 
-        # Operator 2: Remove an assigned patient
-        if(operator == 2):
-            new_solution = self.remove_patient(solution)
+            # Operator 2: Remove an assigned patient
+            if(operator == 2):
+                new_solution = self.remove_patient(solution)
 
-        # Operator 3: Remove then insert (1+2)
-        if(operator == 3):
-            new_solution = self.remove_patient(solution)
-            new_solution = self.insert_patient(new_solution)
+            # Operator 3: Remove then insert (1+2)
+            if(operator == 3):
+                new_solution = self.remove_patient(solution)
+                new_solution = self.insert_patient(new_solution)
 
-        # Operator 4: Add a room for nurse
-        if(operator == 4):
-            new_solution = self.add_nurse_room(solution)
+            # Operator 4: Add a room for nurse
+            if(operator == 4):
+                new_solution = self.add_nurse_room(solution)
 
-        # Operator 5: Remove a room for nurse
-        if(operator == 5):
-            new_solution = self.remove_nurse_room(solution)
+            # Operator 5: Remove a room for nurse
+            if(operator == 5):
+                new_solution = self.remove_nurse_room(solution)
 
-        # Operator 6: Change a patients room
-        if(operator == 6):
-            new_solution = self.change_patient_room(solution)
-        
-        # Operator 7: Change a patients admission day
-        if(operator == 7):
-            new_solution = self.change_patient_admission(solution)
+            # Operator 6: Change a patients room
+            if(operator == 6):
+                new_solution = self.change_patient_room(solution)
+            
+            # Operator 7: Change a patients admission day
+            if(operator == 7):
+                new_solution = self.change_patient_admission(solution)
 
-        # OPerator 8: Change a patients 
-        if(operator == 8):
-            new_solution = self.change_patient_theater(solution)
+            # OPerator 8: Change a patients 
+            if(operator == 8):
+                new_solution = self.change_patient_theater(solution)
+
+            self.agent.setCurrentState(self.agent.getNewState())
+
+            #apply the epsilon-greedy policy again
+            if np.random.uniform() < explore_prob:
+                #Explore Randomly
+                # NOTE!! this time we can choose 0 to exit out of the LLH sequence
+                operator =  rd.choices([0,1,2,3,4,5,6,7,8])[0]
+                #update new state with sequence length+1 and next used operator
+                self.agent.setNewState((self.agent.getCurrentState()[0] + 1,operator))
+            else:
+                #Exploit best action
+                operator = self.agent.getBestAction()
+                 #update new state with sequence length+1 and next used operator
+                self.agent.setNewState((self.agent.getCurrentState()[0] + 1,operator))
 
         # Return final solution
         return new_solution
