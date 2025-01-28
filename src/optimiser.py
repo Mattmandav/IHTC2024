@@ -500,8 +500,11 @@ class Optimiser():
                 solution_pool.append(copy.deepcopy(current_solution))
 
             # Applying moves
+            index_sols = [(solution_pool[p],p) for p in range(pool_size)]
             with mp.Pool(self.cores) as p:
-                new_solutions = p.map(self.solution_adjustment,solution_pool)      
+                new_solutions = p.starmap(self.solution_adjustment,index_sols)
+            #with mp.Pool(self.cores) as p:
+                #new_solutions = p.map(self.solution_adjustment,solution_pool)      
 
             # Checking solution pool for "best" solution
             index_new_sols = [(new_solutions[p],p) for p in range(pool_size)]
@@ -535,7 +538,7 @@ class Optimiser():
         return best_solution
 
     
-    def solution_adjustment(self,solution):
+    def solution_adjustment(self,solution,runnumber):
         """
         POSSIBLE PATIENT MOVES
         - Remove non-mandatory patient
@@ -576,9 +579,9 @@ class Optimiser():
         self.agent.setNewState((1,None))
 
         #hold current score to evaluate reward later on
-        current_score = self.solution_check(solution)["Cost"]
+        current_score = self.solution_check(solution,runnumber)["Cost"]
 
-        while operator != 0 and self.agent.getNewState()[0] <= max_sequence_length: 
+        while operator != 0 and self.agent.getNewState()[0] < max_sequence_length: 
 
             # Operator 1: Insert an unassigned patient
             if(operator == 1):
@@ -617,7 +620,7 @@ class Optimiser():
             self.agent.setNewState((self.agent.getCurrentState()[0] + 1,operator))
 
             #evaluate new solution score
-            new_score = self.solution_check(new_solution)["Cost"]
+            new_score = self.solution_check(new_solution,runnumber)["Cost"]
             
             #evaluate reward = move in score for qlearner
             your_mums_reward = new_score - current_score
