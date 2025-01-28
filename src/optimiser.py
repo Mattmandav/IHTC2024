@@ -121,8 +121,12 @@ class Optimiser():
 
         #Initialise the qtable using inputs above
         #Default q_value is 0.0, set to 1.0 to be optimistic (if using 1-0 reward)
-        starting_q_value = 1.0
+        starting_q_value = 0.0
         self.agent.initialiseQTable(q_value = starting_q_value)
+
+        #decaying learning rate setup
+        self.agent.setLearnRate(1)
+        self.NVisits = np.zeros((max_sequence_length,number_of_low_level_heuristics+2, number_of_low_level_heuristics+2))
 
         self.remaining_time = self.remaining_time - (time.time() - self.time_start)
     
@@ -578,6 +582,11 @@ class Optimiser():
         #set a dummy new state to get into the while loop
         self.agent.setNewState((1,None))
 
+        self.NVisits[self.agent.getCurrentState()+(operator,)] += 1
+
+        #find dynamic learning rate
+        self.agent.setLearnRate(1/self.NVisits[self.agent.getCurrentState()+(operator,)])
+
         #hold current score to evaluate reward later on
         current_score = self.solution_check(solution,runnumber)["Cost"]
 
@@ -623,7 +632,7 @@ class Optimiser():
             new_score = self.solution_check(new_solution,runnumber)["Cost"]
             
             #evaluate reward = move in score for qlearner
-            your_mums_reward = current_score - new_score
+            your_mums_reward = min(max(current_score - new_score,0),1)
 
             #Q-learning update
             self.agent.QLearningUpdate(action = operator, reward = your_mums_reward)
@@ -635,7 +644,7 @@ class Optimiser():
             #apply the epsilon-greedy policy again
             if np.random.uniform() < explore_prob:
                 #Explore Randomly
-                # NOTE!! this time we can choose 0 to exit out of the LLH sequence
+                # Note!! this time we can choose 0 to exit out of the LLH sequence
                 operator =  rd.choices([0,1,2,3,4,5,6,7,8])[0]
                 #update new state with sequence length+1 and next used operator
                 self.agent.setNewState((self.agent.getCurrentState()[0] + 1,operator))
@@ -644,6 +653,11 @@ class Optimiser():
                 operator = self.agent.getBestAction()
                  #update new state with sequence length+1 and next used operator
                 self.agent.setNewState((self.agent.getCurrentState()[0] + 1,operator))
+
+            self.NVisits[self.agent.getCurrentState()+(operator,)] += 1
+
+            #find dynamic learning rate
+            self.agent.setLearnRate(1/self.NVisits[self.agent.getCurrentState()+(operator,)])
 
         # Return final solution
         return new_solution
