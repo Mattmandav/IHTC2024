@@ -623,7 +623,7 @@ class Optimiser():
             new_score = self.solution_check(new_solution,runnumber)["Cost"]
             
             #evaluate reward = move in score for qlearner
-            your_mums_reward = new_score - current_score
+            your_mums_reward = current_score - new_score
 
             #Q-learning update
             self.agent.QLearningUpdate(action = operator, reward = your_mums_reward)
