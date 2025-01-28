@@ -121,12 +121,23 @@ class Optimiser():
 
         #Initialise the qtable using inputs above
         #Default q_value is 0.0, set to 1.0 to be optimistic (if using 1-0 reward)
-        starting_q_value = 0.0
+        starting_q_value = 1.0
         self.agent.initialiseQTable(q_value = starting_q_value)
 
         #decaying learning rate setup
         self.agent.setLearnRate(1)
         self.NVisits = np.zeros((max_sequence_length,number_of_low_level_heuristics+2, number_of_low_level_heuristics+2))
+
+        #maximum exploration probability for decaying e-greedy
+        self.max_explore = 1
+
+        # maximum exploration probability for decaying e-greedy
+        self.min_explore = 0.005
+
+        # rate of decay for decaying e-greedy
+        self.explore_decay_rate = 0.00005
+
+        self.episode = 0
 
         self.remaining_time = self.remaining_time - (time.time() - self.time_start)
     
@@ -570,7 +581,12 @@ class Optimiser():
 
         #epsilon-Greedy policy for picking actions dervied from Q
         #Magic number here - can be changed and switched to a better regime
-        explore_prob = 0.1
+        # explore_prob = 0.1
+
+        self.episode += 1
+
+        explore_prob = self.min_explore + (self.max_explore - self.min_explore)*np.exp(-self.explore_decay_rate*self.episode)
+
         #e.g. decaying epslion-greedy, UCB (Book: warren B. Powell Approximate Dynamic Programming has some more in)
         if np.random.uniform() < explore_prob:
             #Explore Randomly
@@ -641,6 +657,11 @@ class Optimiser():
             self.agent.setCurrentState(self.agent.getNewState())
 
             current_score = new_score
+
+            self.episode += 1
+
+            explore_prob = self.min_explore + (self.max_explore - self.min_explore)*np.exp(-self.explore_decay_rate*self.episode)
+
             #apply the epsilon-greedy policy again
             if np.random.uniform() < explore_prob:
                 #Explore Randomly
