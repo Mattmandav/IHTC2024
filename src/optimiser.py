@@ -6,8 +6,6 @@ import multiprocessing as mp
 import copy
 import numpy as np
 import random as rd
-import pandas as pd
-import matplotlib.pyplot as plt
 
 # Main optimisation function
 def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
@@ -27,7 +25,6 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
 
     # Put the data into the optimiser class
     optimisation_object = Optimiser(data,
-                                    input_file = input_file,
                                     time_limit = time_limit,
                                     time_tolerance = time_tolerance)
 
@@ -48,7 +45,7 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
 
 # Optimisation class
 class Optimiser():
-    def __init__(self, data, input_file, time_limit = 60, time_tolerance = 5):
+    def __init__(self, data, time_limit = 60, time_tolerance = 5):
         # Key values for optimiser
         self.data = data
         self.cores = 4
@@ -106,9 +103,14 @@ class Optimiser():
         self.remaining_time = self.remaining_time - (time.time() - self.time_start)
     
         # Info on collecting cost info
-        self.iter_num = 0
-        self.input_file = input_file
-        self.costs = []
+        self.costs = {"RoomAgeMix": [],
+                      "RoomSkillLevel": [],
+                      "ContinuityOfCare": [],
+                      "ExcessiveNurseWorkload": [],
+                      "OpenOperatingTheater": [],
+                      "SurgeonTransfer": [],
+                      "PatientDelay": [],
+                      "ElectiveUnscheduledPatients": []}
         
     """
     Processing functions
@@ -202,8 +204,7 @@ class Optimiser():
             )
         for line in result.stdout.splitlines():
             if('(' in line and '.' in line):
-                data = [self.input_file, float(self.iter_num), line.split('.')[0], float(line.split('.')[-1].split()[0])]
-                self.costs.append(data)
+                self.costs[line.split('.')[0]].append(float(line.split('.')[-1].split()[0]))
 
         # Clean up temp folder
         os.remove("src/temp_solutions/data{}.json".format(core_name))
@@ -529,7 +530,6 @@ class Optimiser():
                 best_solution_value = copy.deepcopy(temp_best_value)
 
                 # Save costs data
-                self.iter_num += 1
                 self.solution_collect_costs(temp_best)
 
             # Deciding whether to accept new solution as current solution
@@ -540,11 +540,8 @@ class Optimiser():
             # Updating the time remaining
             self.remaining_time = self.remaining_time - (time.time() - time_start)
 
-        # print costs curve
-        df = self.costs
-        
         # Return the best solution
-        return best_solution, df
+        return best_solution, self.costs
 
     
     def solution_adjustment(self,solution):
