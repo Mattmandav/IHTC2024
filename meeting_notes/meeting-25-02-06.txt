@@ -1,0 +1,36 @@
+ACTIONS
+
+Adam
+- Worked out to hook up Q-learning
+- Q-learning seems to still be worse than random
+- Has a decaying learning rate
+- Allow solutions to be infeasible for Q-learning to be better
+- Monte-carlo
+
+
+Ben
+- C++ wrapper for solution checking
+- Plan repo structure
+
+
+Matt
+- Move design
+- Coordinating the spliting of repo into sections
+- Make develop branch (?)
+
+
+Graham
+- Move design
+- Solution analysis
+
+
+Rebecca
+- Population of not all the same
+- Looked at doing record-to-record
+- Look at "size" of solutions and impact on record-to-record (deterministic)
+- Investigate simulated annealing (less tuning but random)
+
+
+GENERAL TASKS TO THINK ABOUT
+- Vote on day/afternoon/morning to do problem solving style session
+- 15th February to 22nd February 2025
