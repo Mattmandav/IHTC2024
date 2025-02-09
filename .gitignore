@@ -1,7 +1,7 @@
 data/instances/*
 data/solutions/*
 data/plots/*
-bin/*
+bin/IHTP_Validator
 
 # Vscode
 .vscode/*
