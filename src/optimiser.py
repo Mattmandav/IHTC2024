@@ -20,10 +20,6 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
     # Set seed for optimisation
     rd.seed(seed)
 
-    # Check if temp folder exists, make it if not
-    if not os.path.exists("src/temp_solutions"):
-        os.makedirs("src/temp_solutions")# Check if temp folder exists, make it if not
-
     # Put the data into the optimiser class
     optimisation_object = Optimiser(data,
                                     time_limit = time_limit,
@@ -34,9 +30,6 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
     solution = optimisation_object.improvement_hyper_heuristic(solution)
     print(optimisation_object.solution_check(solution))
 
-    # Remove the temporary solutions folder
-    if os.path.exists("src/temp_solutions"):
-        os.rmdir("src/temp_solutions")
 
     # Reporting process
     print(f"Main function completed in {round(time.time() - time_start,2)} seconds!")
@@ -148,19 +141,13 @@ class Optimiser():
     """
 
     def solution_check(self, solution, core_name = ""):
-        # Export data
-        with open("src/temp_solutions/data{}.json".format(core_name), "w") as outfile: 
-            json.dump(self.data, outfile, indent=2)
-        # Export solution
-        with open("src/temp_solutions/solution{}.json".format(core_name), "w") as outfile: 
-            json.dump(solution, outfile, indent=2)
         
         # Check solution
         violations = 0
         cost = 0
         reasons = []
         result = subprocess.run(
-            ['./IHTP_Validator', 'src/temp_solutions/data{}.json'.format(core_name), 'src/temp_solutions/solution{}.json'.format(core_name)],
+            ['./IHTP_Validator_no_file_input', json.dumps(self.data),json.dumps(solution)],
             capture_output = True, # Python >= 3.7 only
             text = True # Python >= 3.7 only
             )
@@ -175,9 +162,7 @@ class Optimiser():
             if("Total cost" in line):
                 cost = int(line.split()[-1])
         
-        # Clean up temp folder
-        os.remove("src/temp_solutions/data{}.json".format(core_name))
-        os.remove("src/temp_solutions/solution{}.json".format(core_name))
+
         
         # Return violations and cost
         return {"Violations": violations, "Cost": cost, "Reasons": reasons}
