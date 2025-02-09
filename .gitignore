@@ -1,8 +1,6 @@
-data/*
-test_solutions/*
-solutions/*
-bugs/*
-IHTP_Validator
+data/instances/*
+data/solutions/*
+data/plots/*
 
 # Vscode
 .vscode/*
