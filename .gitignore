@@ -1,6 +1,7 @@
 data/instances/*
 data/solutions/*
 data/plots/*
+bin/*
 
 # Vscode
 .vscode/*
