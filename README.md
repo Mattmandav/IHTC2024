@@ -3,6 +3,40 @@ Development space for the IHTC 2024.
 
 https://ihtc2024.github.io/
 
+# Ideal Project Structure
+```bash
+.
+├── bin
+│   └── validator
+├── data
+│   ├── instances
+│   ├── plots
+│   └── solutions
+├── pyproject.toml
+├── README.md
+├── src
+│   ├── data
+│   │   ├── __init__.py
+│   │   └── instance_dataclass.py
+│   ├── __init__.py
+│   ├── optimise
+│   │   ├── heuristics.py
+│   │   ├── __init__.py
+│   │   └── optimiser.py
+│   ├── policies
+│   │   ├── acceptance.py
+│   │   ├── __init__.py
+│   │   └── qlearner.py
+│   └── utils
+│       ├── __init__.py
+│       ├── plotter.py
+│       └── validator_interface.py
+└── tests
+    ├── bulk_main.py
+    ├── __init__.py
+    └── main.py
+```
+
 ## Development team and contributions
 
 - Matthew Davison (Team leader)
