@@ -2,6 +2,7 @@ import argparse
 import sys
 import os
 from src.optimiser import main
+from src.plotter import plot_objectives
 import json
 
 if __name__ == "__main__":
@@ -33,11 +34,14 @@ if __name__ == "__main__":
                 raise ValueError("Invalid output folder")
             
         # Running optimisation
-        solution = main(args.input_file,
-                        seed = args.seed,
-                        time_limit = args.time_limit,
-                        time_tolerance = args.time_tolerance)
+        solution, costs = main(args.input_file,
+                               seed = args.seed,
+                               time_limit = args.time_limit,
+                               time_tolerance = args.time_tolerance)
 
+        # plot costs over time
+        plot_objectives(costs = costs)
+        
         # Saving solution
         with open("{}sol_{}.json".format(args.output_folder,filename), "w") as outfile: 
             json.dump(solution, outfile, indent=2)

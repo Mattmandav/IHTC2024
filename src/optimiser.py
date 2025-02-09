@@ -7,7 +7,6 @@ import copy
 import numpy as np
 import random as rd
 
-
 # Main optimisation function
 def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
     # Starting function timer
@@ -31,7 +30,7 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
 
     # Run an optimisation method
     solution = optimisation_object.optimise(method = "greedy")
-    solution = optimisation_object.improvement_hyper_heuristic(solution)
+    solution, costs = optimisation_object.improvement_hyper_heuristic(solution)
     print(optimisation_object.solution_check(solution))
 
     # Remove the temporary solutions folder
@@ -42,8 +41,7 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
     print(f"Main function completed in {round(time.time() - time_start,2)} seconds!")
     print()
 
-    return solution
-
+    return solution, costs
 
 # Optimisation class
 class Optimiser():
@@ -104,8 +102,22 @@ class Optimiser():
 
         self.remaining_time = self.remaining_time - (time.time() - self.time_start)
     
+        # Info on collecting cost info
+        self.costs = {"RoomAgeMix": [],
+                      "RoomSkillLevel": [],
+                      "ContinuityOfCare": [],
+                      "ExcessiveNurseWorkload": [],
+                      "OpenOperatingTheater": [],
+                      "SurgeonTransfer": [],
+                      "PatientDelay": [],
+                      "ElectiveUnscheduledPatients": []}
 
-    """
+        # Keeping track of resources
+        self.room_allocation = {}
+        self.theater_allocation = {}
+        self.surgeon_allocation = {}
+
+        """
     Processing functions
     """
 
@@ -174,7 +186,7 @@ class Optimiser():
             # Get cost
             if("Total cost" in line):
                 cost = int(line.split()[-1])
-        
+
         # Clean up temp folder
         os.remove("src/temp_solutions/data{}.json".format(core_name))
         os.remove("src/temp_solutions/solution{}.json".format(core_name))
@@ -182,7 +194,28 @@ class Optimiser():
         # Return violations and cost
         return {"Violations": violations, "Cost": cost, "Reasons": reasons}
 
+    def solution_collect_costs(self, solution, core_name = ""):
+        # Export data
+        with open("src/temp_solutions/data{}.json".format(core_name), "w") as outfile: 
+            json.dump(self.data, outfile, indent=2)
+        # Export solution
+        with open("src/temp_solutions/solution{}.json".format(core_name), "w") as outfile: 
+            json.dump(solution, outfile, indent=2)
 
+        result = subprocess.run(
+            ['./IHTP_Validator', 'src/temp_solutions/data{}.json'.format(core_name), 'src/temp_solutions/solution{}.json'.format(core_name)],
+            capture_output = True, # Python >= 3.7 only
+            text = True # Python >= 3.7 only
+            )
+        for line in result.stdout.splitlines():
+            if('(' in line and '.' in line):
+                self.costs[line.split('.')[0]].append(float(line.split('.')[-1].split()[0]))
+
+        # Clean up temp folder
+        os.remove("src/temp_solutions/data{}.json".format(core_name))
+        os.remove("src/temp_solutions/solution{}.json".format(core_name))
+
+                
     def solution_score(self, solution, core_name):
         values = self.solution_check(solution, core_name=core_name)
         if(values["Violations"] > 0):
@@ -251,27 +284,24 @@ class Optimiser():
             solution = {"patients": [], "nurses": []}
 
             # Building room capacity tracking object
-            room_allocation = {}
             for d in self.all_days:
                 for r in self.data["rooms"]:
-                    room_allocation[(d,r["id"])] = []
+                    self.room_allocation[(d,r["id"])] = []
 
             # Theater capacity tracking
-            theater_allocation = {}
             for d in self.all_days:
                 for t in self.data["operating_theaters"]:
-                    theater_allocation[(d,t["id"])] = t["availability"][d]
+                    self.theater_allocation[(d,t["id"])] = t["availability"][d]
 
             # Surgeon capacity tracking
-            surgeon_allocation = {}
             for d in self.all_days:
                 for s in self.data["surgeons"]:
-                    surgeon_allocation[(d,s["id"])] = s["max_surgery_time"][d]
+                    self.surgeon_allocation[(d,s["id"])] = s["max_surgery_time"][d]
 
             # Adding in occupants
             for o in self.data["occupants"]:
                 for i in range(o["length_of_stay"]):
-                    room_allocation[(i,o["room_id"])].append((o["id"],o["gender"],o["age_group"]))
+                    self.room_allocation[(i,o["room_id"])].append((o["id"],o["gender"],o["age_group"]))
             
             # Iterating over mandatory patients
             admitted_mandatory_patients = []
@@ -281,7 +311,7 @@ class Optimiser():
                     if(patient_id in admitted_mandatory_patients):
                         continue
                     # If not try allocating
-                    [admitted,patient_admission,room_allocation,theater_allocation,surgeon_allocation] = self.greedy_patient_allocation(d,patient_id,room_allocation,theater_allocation,surgeon_allocation)
+                    [admitted,patient_admission] = self.greedy_patient_allocation(d,patient_id)
                     if(admitted):
                         solution["patients"].append(patient_admission)
                         admitted_mandatory_patients.append(patient_id)
@@ -319,7 +349,7 @@ class Optimiser():
         workload_day_shift_room = {}
         for d in self.all_days:
             for r in self.data["rooms"]:
-                occupants = [o[0] for o in room_allocation[(d,r["id"])]]
+                occupants = [o[0] for o in self.room_allocation[(d,r["id"])]]
                 for shift in self.shift_types:
                     total_workload = 0
                     for patient_id in occupants:
@@ -407,21 +437,21 @@ class Optimiser():
         return solution
     
 
-    def greedy_patient_allocation(self,d,patient_id,room_allocation,theater_allocation,surgeon_allocation):
+    def greedy_patient_allocation(self,d,patient_id):
         # Check if patient can be admitted on this day
         if(d in self.patient_dict[patient_id]["possible_admission_days"]):
             # Check if the surgeon has availability on that day
-            surgeon_day_availability = surgeon_allocation[(d,self.patient_dict[patient_id]["surgeon_id"])]
+            surgeon_day_availability = self.surgeon_allocation[(d,self.patient_dict[patient_id]["surgeon_id"])]
             if(surgeon_day_availability >= self.patient_dict[patient_id]["surgery_duration"]):
                 for r in self.data["rooms"]:
-                    room_day_info = room_allocation[(d,r["id"])]
+                    room_day_info = self.room_allocation[(d,r["id"])]
                     # Check if patient can fit into room
                     if(len(room_day_info) < r["capacity"] and r["id"] in self.patient_dict[patient_id]["possible_rooms"]):
                         # Check if anyone is in room or check if patient matches gender of room
                         if(len(room_day_info) == 0 or room_day_info[0][1] == self.patient_dict[patient_id]["gender"]):
                             for t in self.data["operating_theaters"]:
                                 # Checking if the theater has enough capacity to perform surgery
-                                if(theater_allocation[(d,t["id"])] >= self.patient_dict[patient_id]["surgery_duration"]):
+                                if(self.theater_allocation[(d,t["id"])] >= self.patient_dict[patient_id]["surgery_duration"]):
                                     # ADMIT PATIENT
                                     patient_admission = {"id": patient_id}
                                     # Add day
@@ -430,18 +460,17 @@ class Optimiser():
                                     patient_admission["room"] = r["id"]
                                     for i in range(self.patient_dict[patient_id]["length_of_stay"]):
                                         if(d+i < self.ndays):
-                                            room_allocation[(d+i,r["id"])].append((patient_id,
+                                            self.room_allocation[(d+i,r["id"])].append((patient_id,
                                                                                     self.patient_dict[patient_id]["gender"],
                                                                                     self.patient_dict[patient_id]["age_group"]))
                                     # Add theater
-                                    theater_allocation[(d,t["id"])] -= self.patient_dict[patient_id]["surgery_duration"]
+                                    self.theater_allocation[(d,t["id"])] -= self.patient_dict[patient_id]["surgery_duration"]
                                     patient_admission["operating_theater"] = t["id"]
                                     # Update surgeons hours
-                                    surgeon_allocation[(d,self.patient_dict[patient_id]["surgeon_id"])] -= self.patient_dict[patient_id]["surgery_duration"]
+                                    self.surgeon_allocation[(d,self.patient_dict[patient_id]["surgeon_id"])] -= self.patient_dict[patient_id]["surgery_duration"]
                                     # Return the admission details
-                                    return True,patient_admission,room_allocation,theater_allocation,surgeon_allocation
-        return False,{},room_allocation,theater_allocation,surgeon_allocation
-    
+                                    return True,patient_admission
+        return False,{}
 
     """
     Hyper-heurisic improvement
@@ -497,20 +526,23 @@ class Optimiser():
 
             # Saving best solution
             if(temp_best_value < best_solution_value):
-                print("New best solution found! Score:",temp_best_value)
+                #print("New best solution found! Score:",temp_best_value)
                 best_solution = copy.deepcopy(temp_best)
                 best_solution_value = copy.deepcopy(temp_best_value)
+
+                # Save costs data
+                self.solution_collect_costs(temp_best)
 
             # Deciding whether to accept new solution as current solution
             if(temp_best_value < current_solution_value):
                 current_solution = copy.deepcopy(temp_best)
                 current_solution_value = copy.deepcopy(temp_best_value)
-
+                
             # Updating the time remaining
             self.remaining_time = self.remaining_time - (time.time() - time_start)
 
         # Return the best solution
-        return best_solution
+        return best_solution, self.costs
 
     
     def solution_adjustment(self,solution):
@@ -535,7 +567,7 @@ class Optimiser():
         new_solution = solution
 
         # Select an operator to use
-        operator =  rd.choices([1,2,3,4,5,6,7,8])[0]
+        operator =  rd.choices([1,2,3,4,5,6,7,8,9])[0]
 
         # Operator 1: Insert an unassigned patient
         if(operator == 1):
@@ -570,10 +602,13 @@ class Optimiser():
         if(operator == 8):
             new_solution = self.change_patient_theater(solution)
 
+        # Operator 1: Insert an unassigned patient
+        if(operator == 9):
+            new_solution = self.insert_patient_empty_room(solution)
+            
         # Return final solution
         return new_solution
-    
-    
+        
     """
     Individual adjustments to the solution
     """
@@ -608,11 +643,47 @@ class Optimiser():
             else:
                 new_patients.append(new_solution_entry)
         solution["patients"] = new_patients
-        
+
         # Return updated solution
         return solution
 
+    # Insert a non-mandatory patient to an empty room
+    def insert_patient_empty_room(self,solution):
+        """
+        This operator takes a solution and tries to insert a single non-mandatory patient into an entry room
+        """
+        # Creating a list of unassigned patients
+        non_assigned_patients = [[patient["id"],sum(self.patient_dict[patient["id"]]["workload_produced"])] for patient in solution["patients"] if patient["admission_day"] == "none"]
 
+        # If cannot remove patient then return
+        if(len(non_assigned_patients) == 0):
+            return solution
+        
+        # Selecting a patient to insert - least workload
+        patient_to_insert = min(non_assigned_patients, key=lambda x: x[1])[0]
+
+        # Find a day/room/theatre that works for this patient
+        looking = True
+        d=0
+        while looking and d<self.ndays:
+            # try allocating
+            [admitted,patient_admission] = self.greedy_patient_allocation(d,patient_to_insert)
+            if(admitted):
+                # Creating new solution
+                new_patients = []
+                for current_patient in solution["patients"]:
+                    if(current_patient["id"] != patient_to_insert):
+                        new_patients.append(current_patient)
+                    else:
+                        new_patients.append(patient_admission)
+                solution["patients"] = new_patients
+                looking = False
+            else:
+                d+=1
+        
+        # Return updated solution
+        return solution
+    
     def remove_patient(self,solution):
         """
         This operator takes a solution and removes a single non-mandatory patient

@@ -62,4 +62,3 @@ if __name__ == "__main__":
     # Example dual plot (loads both plots)
     plot_objectives(violations = example_violations_dict,
                     costs = example_costs_dict)
-    
