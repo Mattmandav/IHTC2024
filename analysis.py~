@@ -1,7 +1,0 @@
-from src.optimiser import main
-
-# Running optimisation
-solution = main(input_file,
-                args.seed,
-                time_limit,
-                time_tolerance)

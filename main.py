@@ -1,8 +1,8 @@
 import argparse
 import sys
 import os
-from src.optimiser import main
-from src.plotter import plot_objectives
+from optimise.optimiser import main
+from utils.plotter import plot_objectives
 import json
 
 if __name__ == "__main__":
@@ -14,9 +14,10 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser()
         parser.add_argument('input_file',type=str,)
         parser.add_argument('--seed',type=int,default=982032024)
-        parser.add_argument('--output_folder',type=str,default="")
+        parser.add_argument('--output_folder',type=str,default="data/solutions")
         parser.add_argument('--time_limit',type=float,default="60")
         parser.add_argument('--time_tolerance',type=float,default="5")
+        parser.add_argument('--plot',action='store_true')
         args = parser.parse_args()
         
         # Extracting filename
@@ -40,7 +41,8 @@ if __name__ == "__main__":
                                time_tolerance = args.time_tolerance)
 
         # plot costs over time
-        plot_objectives(costs = costs)
+        if(args.plot):
+            plot_objectives(costs = costs)
         
         # Saving solution
         with open("{}sol_{}.json".format(args.output_folder,filename), "w") as outfile: 

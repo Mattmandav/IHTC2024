@@ -1,4 +1,4 @@
-from src.optimiser import main
+from optimise.optimiser import main
 import pandas as pd
 from plotnine import *
 

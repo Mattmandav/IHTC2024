@@ -3,7 +3,7 @@ Development space for the IHTC 2024.
 
 https://ihtc2024.github.io/
 
-# Ideal Project Structure
+## Ideal Project Structure
 ```bash
 .
 ├── bin
