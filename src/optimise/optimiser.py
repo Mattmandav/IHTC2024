@@ -23,10 +23,6 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
     # Set seed for optimisation
     rd.seed(seed)
 
-    # Check if temp folder exists, make it if not
-    if not os.path.exists("src/temp_solutions"):
-        os.makedirs("src/temp_solutions")# Check if temp folder exists, make it if not
-
     # Put the data into the optimiser class
     optimisation_object = Optimiser(data,
                                     time_limit = time_limit,
@@ -36,10 +32,6 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
     solution = optimisation_object.optimise(method = "greedy")
     solution, costs = optimisation_object.improvement_hyper_heuristic(solution)
     print(optimisation_object.solution_check(solution))
-
-    # Remove the temporary solutions folder
-    if os.path.exists("src/temp_solutions"):
-        os.rmdir("src/temp_solutions")
 
     # Reporting process
     print(f"Main function completed in {round(time.time() - time_start,2)} seconds!")
