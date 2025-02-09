@@ -84,20 +84,13 @@ class Optimiser():
     Solution checking
     """
 
-    def solution_check(self, solution, core_name = ""):
-        # Export data
-        with open("src/temp_solutions/data{}.json".format(core_name), "w") as outfile: 
-            json.dump(self.raw_data, outfile, indent=2)
-        # Export solution
-        with open("src/temp_solutions/solution{}.json".format(core_name), "w") as outfile: 
-            json.dump(solution, outfile, indent=2)
-        
+    def solution_check(self, solution):
         # Check solution
         violations = 0
         cost = 0
         reasons = []
         result = subprocess.run(
-            ['./bin/IHTP_Validator', 'src/temp_solutions/data{}.json'.format(core_name), 'src/temp_solutions/solution{}.json'.format(core_name)],
+            ['./bin/IHTP_Validator_no_file_input', json.dumps(self.raw_data), json.dumps(solution)],
             capture_output = True, # Python >= 3.7 only
             text = True # Python >= 3.7 only
             )
@@ -111,25 +104,14 @@ class Optimiser():
             # Get cost
             if("Total cost" in line):
                 cost = int(line.split()[-1])
-
-        # Clean up temp folder
-        os.remove("src/temp_solutions/data{}.json".format(core_name))
-        os.remove("src/temp_solutions/solution{}.json".format(core_name))
         
         # Return violations and cost
         return {"Violations": violations, "Cost": cost, "Reasons": reasons}
 
     
-    def solution_collect_costs(self, solution, core_name = ""):
-        # Export data
-        with open("src/temp_solutions/data{}.json".format(core_name), "w") as outfile: 
-            json.dump(self.raw_data, outfile, indent=2)
-        # Export solution
-        with open("src/temp_solutions/solution{}.json".format(core_name), "w") as outfile: 
-            json.dump(solution, outfile, indent=2)
-
+    def solution_collect_costs(self, solution):
         result = subprocess.run(
-            ['./bin/IHTP_Validator', 'src/temp_solutions/data{}.json'.format(core_name), 'src/temp_solutions/solution{}.json'.format(core_name)],
+            ['./bin/IHTP_Validator_no_file_input', json.dumps(self.raw_data), json.dumps(solution)],
             capture_output = True, # Python >= 3.7 only
             text = True # Python >= 3.7 only
             )
@@ -137,13 +119,9 @@ class Optimiser():
             if('(' in line and '.' in line):
                 self.costs[line.split('.')[0]].append(float(line.split('.')[-1].split()[0]))
 
-        # Clean up temp folder
-        os.remove("src/temp_solutions/data{}.json".format(core_name))
-        os.remove("src/temp_solutions/solution{}.json".format(core_name))
-
                 
-    def solution_score(self, solution, core_name):
-        values = self.solution_check(solution, core_name=core_name)
+    def solution_score(self, solution):
+        values = self.solution_check(solution)
         if(values["Violations"] > 0):
             return float('inf')
         else:
@@ -210,9 +188,9 @@ class Optimiser():
                 new_solutions = p.map(self.solution_adjustment,solution_pool)      
 
             # Checking solution pool for "best" solution
-            index_new_sols = [(new_solutions[p],p) for p in range(pool_size)]
+            index_new_sols = [new_solutions[p] for p in range(pool_size)]
             with mp.Pool(self.cores) as p:
-                values = p.starmap(self.solution_score,index_new_sols)
+                values = p.map(self.solution_score,index_new_sols)
 
             # Selecting best solution of this pool
             temp_best = copy.deepcopy(new_solutions[np.argmin(values)])
