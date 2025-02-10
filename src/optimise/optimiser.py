@@ -181,7 +181,7 @@ class Optimiser():
             # Applying moves
             with mp.Pool(self.cores) as p:
                 new_solutions = p.map(self.solution_adjustment,solution_pool)      
-                values = p.map(self.solution_score,[new_solutions[p] for p in range(pool_size)])
+                values = p.map(self.solution_score,new_solutions)
 
             # Append number of attempts
             self.hits['tried'] += 1
