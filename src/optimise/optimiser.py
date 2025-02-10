@@ -42,6 +42,9 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
 # Optimisation class
 class Optimiser():
     def __init__(self, raw_data, time_limit = 60, time_tolerance = 5):
+        # Get number of successful improvements over all iterations
+        # For logging purposes
+        self.hits = {'tried': 0, 'successful': 0}
         # Importing low level heuristics
         self.llh_names = [name for name in dir(llh) if
                           callable(getattr(llh,name)) and
@@ -178,11 +181,10 @@ class Optimiser():
             # Applying moves
             with mp.Pool(self.cores) as p:
                 new_solutions = p.map(self.solution_adjustment,solution_pool)      
+                values = p.map(self.solution_score,[new_solutions[p] for p in range(pool_size)])
 
-            # Checking solution pool for "best" solution
-            index_new_sols = [new_solutions[p] for p in range(pool_size)]
-            with mp.Pool(self.cores) as p:
-                values = p.map(self.solution_score,index_new_sols)
+            # Append number of attempts
+            self.hits['tried'] += 1
 
             # Selecting best solution of this pool
             temp_best = copy.deepcopy(new_solutions[np.argmin(values)])
@@ -204,12 +206,14 @@ class Optimiser():
 
             # Deciding whether to accept new solution as current solution
             if(temp_best_value < current_solution_value):
+                self.hits['successful'] += 1
                 current_solution = copy.deepcopy(temp_best)
                 current_solution_value = copy.deepcopy(temp_best_value)
                 
             # Updating the time remaining
             self.remaining_time = self.remaining_time - (time.time() - time_start)
 
+            #print("Loops ran: {}, successes: {}".format(self.hits['tried'],self.hits['successful']))
         # Return the best solution
         return best_solution, self.costs
 
