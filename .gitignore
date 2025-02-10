@@ -1,3 +1,9 @@
+# Some uv stuff we don't want in the actual version
+pyproject.toml
+.python-version
+uv.lock
+
+
 data/instances/*
 data/solutions/*
 data/plots/*
