@@ -213,7 +213,7 @@ class Optimiser():
             # Updating the time remaining
             self.remaining_time = self.remaining_time - (time.time() - time_start)
 
-            #print("Loops ran: {}, successes: {}".format(self.hits['tried'],self.hits['successful']))
+            print("Loops ran: {}, successes: {}".format(self.hits['tried'],self.hits['successful']))
         # Return the best solution
         return best_solution, self.costs
 
