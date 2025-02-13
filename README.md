@@ -46,8 +46,7 @@ https://ihtc2024.github.io/
 │   │   └── qlearner.py
 │   └── utils
 │       ├── __init__.py
-│       ├── plotter.py
-│       └── validator_interface.py
+│       └──  plotter.py
 └── tests
     ├── bulk_main.py
     ├── __init__.py
