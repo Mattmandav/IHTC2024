@@ -5,6 +5,24 @@ This module contains all of the low level heuristic moves.
 import random as rd
 import src.optimise.greedy as grd
 
+"""
+Function to ensure the "room_allocation", "theater_allocation" and "surgeon_allocation" are correct.
+"""
+
+def __update_allocations__(data,solution):
+    # Check room allocation
+
+    # Check theater allocation
+
+    # Check surgeon allocation
+
+    return solution
+
+"""
+Low-level moves
+"""
+
+
 # Insert a non-mandatory patient
 def insert_patient(data,solution):
     """
@@ -40,42 +58,42 @@ def insert_patient(data,solution):
     return solution
 
     
-# # Insert a non-mandatory patient to an empty room
-# def insert_patient_empty_room(data,solution):
-#     """
-#     This operator takes a solution and tries to insert a single non-mandatory patient into an entry room
-#     """
-#     # Creating a list of unassigned patients
-#     non_assigned_patients = [[patient["id"],sum(data.patient_dict[patient["id"]]["workload_produced"])] for patient in solution["patients"] if patient["admission_day"] == "none"]
+# Insert a non-mandatory patient to an empty room
+def insert_patient_empty_room(data,solution):
+    """
+    This operator takes a solution and tries to insert a single non-mandatory patient into an entry room
+    """
+    # Creating a list of unassigned patients
+    non_assigned_patients = [[patient["id"],sum(data.patient_dict[patient["id"]]["workload_produced"])] for patient in solution["patients"] if patient["admission_day"] == "none"]
 
-#     # If cannot remove patient then return
-#     if(len(non_assigned_patients) == 0):
-#         return solution
-    
-#     # Selecting a patient to insert - least workload
-#     patient_to_insert = min(non_assigned_patients, key=lambda x: x[1])[0]
+    # If cannot remove patient then return
+    if(len(non_assigned_patients) == 0):
+        return solution
 
-#     # Find a day/room/theatre that works for this patient
-#     looking = True
-#     d=0
-#     while looking and d<data.ndays:
-#         # try allocating
-#         [admitted,patient_admission] = grd.greedy_patient_allocation(data,d,patient_to_insert)
-#         if(admitted):
-#             # Creating new solution
-#             new_patients = []
-#             for current_patient in solution["patients"]:
-#                 if(current_patient["id"] != patient_to_insert):
-#                     new_patients.append(current_patient)
-#                 else:
-#                     new_patients.append(patient_admission)
-#             solution["patients"] = new_patients
-#             looking = False
-#         else:
-#             d+=1
-    
-#     # Return updated solution
-#     return solution
+    # Selecting a patient to insert - least workload
+    patient_to_insert = min(non_assigned_patients, key=lambda x: x[1])[0]
+
+    # Find a day/room/theatre that works for this patient
+    looking = True
+    d=0
+    while looking and d<data.ndays:
+        # try allocating
+        [solution,admitted,patient_admission] = grd.greedy_patient_allocation(data,solution,d,patient_to_insert)
+        if(admitted):
+            # Creating new solution
+            new_patients = []
+            for current_patient in solution["patients"]:
+                if(current_patient["id"] != patient_to_insert):
+                    new_patients.append(current_patient)
+                else:
+                    new_patients.append(patient_admission)
+            solution["patients"] = new_patients
+            looking = False
+        else:
+            d+=1
+
+    # Return updated solution
+    return solution
 
 
 # Remove a non-mandatory patient

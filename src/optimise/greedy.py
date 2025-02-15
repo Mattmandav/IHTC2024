@@ -33,38 +33,37 @@ def greedy_allocation(self,data):
                                 if data.patient_dict[patient_id]["mandatory"]]
     all_mandatory_patients = sorted(all_mandatory_patients, key=lambda x: (x[1],x[2]))
     all_mandatory_patients = [p[0] for p in all_mandatory_patients]
-
-    # Keeping track of resources
-    room_allocation = {}
-    theater_allocation = {}
-    surgeon_allocation = {}
     
     while True:
         # Timing iteration of patient assignment
         time_start = time.time()
 
         # Preallocating solution
-        solution = {"patients": [], "nurses": []}
+        solution = {"patients": [],
+                    "nurses": [],
+                    "room_allocation": {},
+                    "theater_allocation": {},
+                    "surgeon_allocation": {}}
 
         # Building room capacity tracking object
         for d in data.all_days:
             for r in data.data["rooms"]:
-                room_allocation[(d,r["id"])] = []
+                solution["room_allocation"][str((d,r["id"]))] = []
 
         # Theater capacity tracking
         for d in data.all_days:
             for t in data.data["operating_theaters"]:
-                theater_allocation[(d,t["id"])] = t["availability"][d]
+                solution["theater_allocation"][str((d,t["id"]))] = t["availability"][d]
 
         # Surgeon capacity tracking
         for d in data.all_days:
             for s in data.data["surgeons"]:
-                surgeon_allocation[(d,s["id"])] = s["max_surgery_time"][d]
+                solution["surgeon_allocation"][str((d,s["id"]))] = s["max_surgery_time"][d]
 
         # Adding in occupants
         for o in data.data["occupants"]:
             for i in range(o["length_of_stay"]):
-                room_allocation[(i,o["room_id"])].append((o["id"],o["gender"],o["age_group"]))
+                solution["room_allocation"][str((i,o["room_id"]))].append((o["id"],o["gender"],o["age_group"]))
         
         # Iterating over mandatory patients
         admitted_mandatory_patients = []
@@ -74,7 +73,7 @@ def greedy_allocation(self,data):
                 if(patient_id in admitted_mandatory_patients):
                     continue
                 # If not try allocating
-                [admitted,patient_admission,room_allocation,theater_allocation,surgeon_allocation] = greedy_patient_allocation(data,d,patient_id,room_allocation,theater_allocation,surgeon_allocation)
+                [solution,admitted,patient_admission] = greedy_patient_allocation(data,solution,d,patient_id)
                 if(admitted):
                     solution["patients"].append(patient_admission)
                     admitted_mandatory_patients.append(patient_id)
@@ -112,7 +111,7 @@ def greedy_allocation(self,data):
     workload_day_shift_room = {}
     for d in data.all_days:
         for r in data.data["rooms"]:
-            occupants = [o[0] for o in room_allocation[(d,r["id"])]]
+            occupants = [o[0] for o in solution["room_allocation"][str((d,r["id"]))]]
             for shift in data.shift_types:
                 total_workload = 0
                 for patient_id in occupants:
@@ -179,21 +178,22 @@ def greedy_allocation(self,data):
     return solution, self.remaining_time
     
 
-def greedy_patient_allocation(data,d,patient_id,room_allocation,theater_allocation,surgeon_allocation):
+def greedy_patient_allocation(data,solution,d,patient_id):
+    original_solution = solution
     # Check if patient can be admitted on this day
     if(d in data.patient_dict[patient_id]["possible_admission_days"]):
         # Check if the surgeon has availability on that day
-        surgeon_day_availability = surgeon_allocation[(d,data.patient_dict[patient_id]["surgeon_id"])]
+        surgeon_day_availability = solution["surgeon_allocation"][str((d,data.patient_dict[patient_id]["surgeon_id"]))]
         if(surgeon_day_availability >= data.patient_dict[patient_id]["surgery_duration"]):
             for r in data.data["rooms"]:
-                room_day_info = room_allocation[(d,r["id"])]
+                room_day_info = solution["room_allocation"][str((d,r["id"]))]
                 # Check if patient can fit into room
                 if(len(room_day_info) < r["capacity"] and r["id"] in data.patient_dict[patient_id]["possible_rooms"]):
                     # Check if anyone is in room or check if patient matches gender of room
                     if(len(room_day_info) == 0 or room_day_info[0][1] == data.patient_dict[patient_id]["gender"]):
                         for t in data.data["operating_theaters"]:
                             # Checking if the theater has enough capacity to perform surgery
-                            if(theater_allocation[(d,t["id"])] >= data.patient_dict[patient_id]["surgery_duration"]):
+                            if(solution["theater_allocation"][str((d,t["id"]))] >= data.patient_dict[patient_id]["surgery_duration"]):
                                 # ADMIT PATIENT
                                 patient_admission = {"id": patient_id}
                                 # Add day
@@ -202,14 +202,14 @@ def greedy_patient_allocation(data,d,patient_id,room_allocation,theater_allocati
                                 patient_admission["room"] = r["id"]
                                 for i in range(data.patient_dict[patient_id]["length_of_stay"]):
                                     if(d+i < data.ndays):
-                                        room_allocation[(d+i,r["id"])].append((patient_id,
+                                        solution["room_allocation"][str((d+i,r["id"]))].append((patient_id,
                                                                                 data.patient_dict[patient_id]["gender"],
                                                                                 data.patient_dict[patient_id]["age_group"]))
                                 # Add theater
-                                theater_allocation[(d,t["id"])] -= data.patient_dict[patient_id]["surgery_duration"]
+                                solution["theater_allocation"][str((d,t["id"]))] -= data.patient_dict[patient_id]["surgery_duration"]
                                 patient_admission["operating_theater"] = t["id"]
                                 # Update surgeons hours
-                                surgeon_allocation[(d,data.patient_dict[patient_id]["surgeon_id"])] -= data.patient_dict[patient_id]["surgery_duration"]
+                                solution["surgeon_allocation"][str((d,data.patient_dict[patient_id]["surgeon_id"]))] -= data.patient_dict[patient_id]["surgery_duration"]
                                 # Return the admission details
-                                return True,patient_admission,room_allocation,theater_allocation,surgeon_allocation
-    return False,{},room_allocation,theater_allocation,surgeon_allocation
+                                return solution,True,patient_admission
+    return original_solution,False,{}
