@@ -9,14 +9,43 @@ import src.optimise.greedy as grd
 Function to ensure the "room_allocation", "theater_allocation" and "surgeon_allocation" are correct.
 """
 
+# Update all allocations
 def __update_allocations__(data,solution):
-    # Check room allocation
-
-    # Check theater allocation
-
-    # Check surgeon allocation
-
+    # Initialising
+    for d in data.all_days:
+        # Room allocations
+        for r in data.data["rooms"]:
+            solution["room_allocation"][str((d,r["id"]))] = []
+        # Theater allocations
+        for t in data.data["operating_theaters"]:
+            solution["theater_allocation"][str((d,t["id"]))] = t["availability"][d]
+        # Surgeon allocations
+        for s in data.data["surgeons"]:
+            solution["surgeon_allocation"][str((d,s["id"]))] = s["max_surgery_time"][d]
+    
+    # Adding existing occupants
+    for o in data.data["occupants"]:
+        for i in range(o["length_of_stay"]):
+            solution["room_allocation"][str((i,o["room_id"]))].append((o["id"],o["gender"],o["age_group"]))
+    
+    # Adding patients
+    for p in solution["patients"]:
+        patient_information = data.patient_dict[p["id"]]
+        i0 = p["admission_day"]
+        # Update room allocation
+        for i in range(patient_information["length_of_stay"]):
+            solution["room_allocation"][str((i0+i,p["room_id"]))].append((p["id"],
+                                                                          patient_information["gender"],
+                                                                          patient_information["age_group"])
+                                                                          )
+        # Update theater allocations
+        solution["theater_allocation"][str((i0,t["id"]))] -= patient_information["surgery_duration"]
+        # Update surgeon allocations
+        solution["surgeon_allocation"][str((i0,patient_information["surgeon_id"]))] -= patient_information["surgery_duration"]
+    
+    # Return solution
     return solution
+
 
 """
 Low-level moves
