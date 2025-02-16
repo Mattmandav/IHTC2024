@@ -1,6 +1,7 @@
 import os
 import subprocess
 import argparse
+import json
 
 """
 Under competition settings:
@@ -14,8 +15,8 @@ Should take a maximum of 400 minutes (7 hours) to re-run all instances.
 """
 
 # Parameters
-data_folder = "data"
-solutions_folder = "solutions"
+data_folder = "data/instances"
+solutions_folder = "data/solutions"
 time_taken = 5
 time_tolerance = 2
 
@@ -29,12 +30,15 @@ args = parser.parse_args()
 # Bulk checking
 def bulk_check():
     solutions = sorted(os.listdir(solutions_folder))
+    print(solutions)
     for s in solutions:
         d = s[4:]
+        with open('{}/{}'.format(data_folder,d),'rb') as raw_data:
+            data = json.dumps(json.load(raw_data))
+        with open('{}/{}'.format(solutions_folder,s),'rb') as raw_sol:
+            sol = json.dumps(json.load(raw_sol))
         result = subprocess.run(
-            ['./IHTP_Validator', 
-            '{}/{}'.format(data_folder,d), 
-            '{}/{}'.format(solutions_folder,s)],
+            ['./bin/IHTP_Validator_no_file_input', data, sol],
             capture_output = True, # Python >= 3.7 only
             text = True # Python >= 3.7 only
             )
