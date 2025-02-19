@@ -3,7 +3,7 @@ pyproject.toml
 .python-version
 uv.lock
 
-
+debug/*
 data/instances/*
 data/solutions/*
 data/plots/*
