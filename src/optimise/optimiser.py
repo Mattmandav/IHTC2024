@@ -56,7 +56,7 @@ class Optimiser():
         # If logging we will record the hits and successes over time
         if self.verbose:
             # For logging purposes
-            #self.hits = {'tried': 0, 'successful': 0, 'type': ['None'], 'Cost Reduction': [0]}
+            self.hits = {'tried': 0, 'successful': 0, 'type': ['None'], 'Cost Reduction': [0]}
             pass
 
         self.instance_file_name = instance_file_name
@@ -249,8 +249,7 @@ class Optimiser():
 
             # Append number of attempts
             if self.verbose:
-                #self.hits['tried'] += 1
-                pass
+                self.hits['tried'] += 1
 
             # Selecting best solution of this pool
             temp_best_index = np.argmin([value['Cost'] for value in values])
@@ -283,9 +282,9 @@ class Optimiser():
                         current_solution = new_solutions[i]
                         solution_pool.append(new_solutions[i])
                         if self.verbose:
-                            #self.hits['successful'] += 1
-                            #self.hits['type'].append(temp_best['operator'])
-                            #self.hits['Cost Reduction'].append(current_solution_value - temp_best_value)
+                            self.hits['successful'] += 1
+                            self.hits['type'].append(temp_best['operator'])
+                            self.hits['Cost Reduction'].append(current_solution_value - temp_best_value)
                             pass
                         current_solution = temp_best
                         current_solution_value = temp_best_value
@@ -297,7 +296,7 @@ class Optimiser():
             # Updating the time remaining
             self.remaining_time = self.remaining_time - (time.time() - time_start)
             if self.verbose:
-                #print("Loops ran: {}, successes: {}, successful operators: {}".format(self.hits['tried'],self.hits['successful'],max(set(self.hits['type']), key=self.hits['type'].count)))
+                print("Loops ran: {}, successes: {}, successful operators: {}".format(self.hits['tried'],self.hits['successful'],max(set(self.hits['type']), key=self.hits['type'].count)))
                 pass
         # Return the best solution
         return best_solution, self.costs
@@ -346,7 +345,10 @@ class Optimiser():
         while self.llh_names[operator_number] != "End" and self.agent.getNewState()[0] < max_sequence_length: 
             # Apply operator
             new_solution = eval("llh."+self.llh_names[operator_number]+"(self.data,solution)")
-            
+
+            # Add the operator used to the new_solution
+            new_solution["operator"] = self.llh_names[operator_number]
+
             #New state is now length of the sequence and last LLH chosen
             self.agent.setNewState((self.agent.getCurrentState()[0] + 1, operator_number))
 

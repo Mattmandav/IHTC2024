@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
         # Saving solution
         with open("{}sol_{}.json".format(args.output_folder,filename), "w") as outfile: 
-            #solution.pop('operator')
+            solution.pop('operator')
             json.dump(solution, outfile, indent=2)
         
         # plot costs over time
