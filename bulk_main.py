@@ -17,8 +17,8 @@ Should take a maximum of 400 minutes (7 hours) to re-run all instances.
 # Parameters
 data_folder = "data/instances"
 solutions_folder = "data/solutions"
-time_taken = 120
-time_tolerance = 20
+time_taken = 600
+time_tolerance = 60
 
 # Arguments
 parser = argparse.ArgumentParser()
