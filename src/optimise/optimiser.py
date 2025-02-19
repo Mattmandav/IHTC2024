@@ -1,18 +1,18 @@
 import json
 import subprocess
-import os
 import time
 import multiprocessing as mp
-import copy
 import numpy as np
 import random as rd
+import tempfile
+import pickle
 
 import src.optimise.heuristics as llh
 import src.optimise.greedy as grd
 from src.data.instance import Data
 
 # Main optimisation function
-def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
+def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verbose = False):
     # Starting function timer
     time_start = time.time()
 
@@ -25,13 +25,18 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
 
     # Put the data into the optimiser class
     optimisation_object = Optimiser(data,
+                                    instance_file_name = input_file,
                                     time_limit = time_limit,
-                                    time_tolerance = time_tolerance)
+                                    time_tolerance = time_tolerance,
+                                    verbose = verbose)
 
     # Run an optimisation method
     solution = optimisation_object.optimise(method = "greedy")
     solution, costs = optimisation_object.improvement_hyper_heuristic(solution)
     print(optimisation_object.solution_check(solution))
+    if verbose:
+        pickle.dump(optimisation_object.hits, open("hits.pkl", "wb"))
+            
 
     # Reporting process
     print(f"Main function completed in {round(time.time() - time_start,2)} seconds!")
@@ -41,7 +46,18 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
 
 # Optimisation class
 class Optimiser():
-    def __init__(self, raw_data, time_limit = 60, time_tolerance = 5):
+    def __init__(self, raw_data, instance_file_name, time_limit = 60, time_tolerance = 5, verbose = False):
+        # Get number of successful improvements over all iterations
+        
+        self.verbose = verbose
+
+
+        # If logging we will record the hits and successes over time
+        if self.verbose:
+            # For logging purposes
+            self.hits = {'tried': 0, 'successful': 0, 'type': ['None'], 'Cost Reduction': [0]}
+
+        self.instance_file_name = instance_file_name
         # Importing low level heuristics
         self.llh_names = [name for name in dir(llh) if
                           callable(getattr(llh,name)) and
@@ -81,11 +97,14 @@ class Optimiser():
         violations = 0
         cost = 0
         reasons = []
-        result = subprocess.run(
-            ['./bin/IHTP_Validator_no_file_input', json.dumps(self.raw_data), json.dumps(solution)],
-            capture_output = True, # Python >= 3.7 only
-            text = True # Python >= 3.7 only
-            )
+        with tempfile.NamedTemporaryFile() as solution_file:
+            solution_file.write(json.dumps(solution).encode())
+            solution_file.seek(0) # Not sure what this does (hard to find documentation) but makes it run quicker
+            result = subprocess.run(
+                ['./bin/IHTP_Validator', self.instance_file_name, solution_file.name],
+                capture_output = True, # Python >= 3.7 only
+                text = True # Python >= 3.7 only
+                )
         for line in result.stdout.splitlines():
             if("." in line and len(line.split()) == 1):
                 if(int(line.split(".")[-1]) != 0):
@@ -96,28 +115,31 @@ class Optimiser():
             # Get cost
             if("Total cost" in line):
                 cost = int(line.split()[-1])
-        
         # Return violations and cost
         return {"Violations": violations, "Cost": cost, "Reasons": reasons}
 
     
     def solution_collect_costs(self, solution):
-        result = subprocess.run(
-            ['./bin/IHTP_Validator_no_file_input', json.dumps(self.raw_data), json.dumps(solution)],
-            capture_output = True, # Python >= 3.7 only
-            text = True # Python >= 3.7 only
-            )
+
+        with tempfile.NamedTemporaryFile() as solution_file:
+            solution_file.write(json.dumps(solution).encode())
+            solution_file.seek(0) # Not sure what this does (hard to find documentation) but makes it run quicker
+            result = subprocess.run(
+                ['./bin/IHTP_Validator', self.instance_file_name, solution_file.name],
+                capture_output = True, # Python >= 3.7 only
+                text = True # Python >= 3.7 only
+                )
         for line in result.stdout.splitlines():
             if('(' in line and '.' in line):
                 self.costs[line.split('.')[0]].append(float(line.split('.')[-1].split()[0]))
-
                 
     def solution_score(self, solution):
         values = self.solution_check(solution)
         if(values["Violations"] > 0):
-            return float('inf')
+            values["Cost"] = np.inf
+            return values
         else:
-            return values["Cost"]
+            return values
 
 
     """
@@ -163,7 +185,7 @@ class Optimiser():
         best_solution = solution
         best_solution_value = self.solution_check(solution)["Cost"]
         current_solution = solution
-        current_solution_value = self.solution_check(solution)["Cost"]
+        current_solution_value = best_solution_value
         
         # Applying heuristic
         while self.remaining_time > self.time_tolerance:
@@ -173,21 +195,25 @@ class Optimiser():
             # Making copies of solution
             solution_pool = []
             for p in range(pool_size):
-                solution_pool.append(copy.deepcopy(current_solution))
+                solution_pool.append(current_solution)
 
             # Applying moves
             with mp.Pool(self.cores) as p:
+                # Since map is ordered we don't need to worry about which solution is which
                 new_solutions = p.map(self.solution_adjustment,solution_pool)      
+                values = p.map(self.solution_score,new_solutions)
 
-            # Checking solution pool for "best" solution
-            index_new_sols = [new_solutions[p] for p in range(pool_size)]
-            with mp.Pool(self.cores) as p:
-                values = p.map(self.solution_score,index_new_sols)
+            # Append number of attempts
+            if self.verbose:
+                self.hits['tried'] += 1
 
             # Selecting best solution of this pool
-            temp_best = copy.deepcopy(new_solutions[np.argmin(values)])
-            temp_best_value = self.solution_check(temp_best)["Cost"]
-            temp_best_violations = self.solution_check(temp_best)["Violations"]
+            temp_best_index = np.argmin([value['Cost'] for value in values])
+            temp_best =  new_solutions[temp_best_index] # This is the json for the temp_best solution
+
+            # Record costs and violations
+            temp_best_value = values[temp_best_index]['Cost']
+            temp_best_violations = values[temp_best_index]["Violations"]
 
             # Checking that the best solution is feasible
             if(temp_best_violations > 0):
@@ -195,21 +221,30 @@ class Optimiser():
 
             # Saving best solution
             if(temp_best_value < best_solution_value):
-                #print("New best solution found! Score:",temp_best_value)
-                best_solution = copy.deepcopy(temp_best)
-                best_solution_value = copy.deepcopy(temp_best_value)
+                
+                best_solution = temp_best
+                best_solution_value = temp_best_value
 
-                # Save costs data
-                self.solution_collect_costs(temp_best)
+                # Dont quite get the point of this (?)
+                # Assume its just collecting costs over time but why don't you just collect all this information from the start when running the intiial pool instead of at the end?
+                # Also since its for plotting, we'll only do this is the plotting option is chosen
+                if self.verbose:
+                    # Save costs data
+                    self.solution_collect_costs(temp_best)
 
             # Deciding whether to accept new solution as current solution
             if(temp_best_value < current_solution_value):
-                current_solution = copy.deepcopy(temp_best)
-                current_solution_value = copy.deepcopy(temp_best_value)
+                if self.verbose:
+                    self.hits['successful'] += 1
+                    self.hits['type'].append(temp_best['operator'])
+                    self.hits['Cost Reduction'].append(current_solution_value - temp_best_value)
+                current_solution = temp_best
+                current_solution_value = temp_best_value
                 
             # Updating the time remaining
             self.remaining_time = self.remaining_time - (time.time() - time_start)
-
+            if self.verbose:
+                print("Loops ran: {}, successes: {}, successful operators: {}".format(self.hits['tried'],self.hits['successful'],max(set(self.hits['type']), key=self.hits['type'].count)))
         # Return the best solution
         return best_solution, self.costs
 
@@ -222,6 +257,8 @@ class Optimiser():
         # Select an operator from the llh package to use
         operator_name = rd.choices(self.llh_names)[0]
         new_solution = eval("llh."+operator_name+"(self.data,solution)")
-            
+        
+        # Add the operator used
+        new_solution['operator'] = operator_name
         # Return final solution
         return new_solution

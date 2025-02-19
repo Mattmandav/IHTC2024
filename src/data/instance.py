@@ -53,6 +53,10 @@ class Data():
                 "skill_level": nurse["skill_level"],
                 "working_shifts": self.nurse_working_shifts(nurse)
             }
+
+        # Some general data items to store to stop the heuristics generating these every time
+        self.all_non_mandatory_patients = [patient_id for patient_id in self.patient_dict if not self.patient_dict[patient_id]["mandatory"]]
+        self.all_nurses = [nurse_id for nurse_id in self.nurse_dict]
     
     """
     Processing functions

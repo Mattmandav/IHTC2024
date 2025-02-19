@@ -1,10 +1,10 @@
 // Solution validator for the Integrated Healthcare Timetabling Problem (IHTP)
 // of the Integrated Healthcare Timetabling Competition (IHTC)
-// Version 0.0 (23/05/24)
+// Version 0.0 (23/05/24) - Modified (10/02/2025) to remove need for file json input
 // Instructions:
 // 1. Download the JSON library at https://github.com/nlohmann/json/blob/develop/single_include/nlohmann/json.hpp
 // 2. Compile with a C++ compiler, for example with the GNU Compiler: g++ -o IHTP_Validator IHTP_Validator.cc 
-// 3. Run with: ./IHTP_Validator <instance_file> <solution_file> [verbose] 
+// 3. Run with: ./IHTP_Validator <instance_json> <solution_json> [verbose] 
 
 #include <iostream>
 #include <iomanip>

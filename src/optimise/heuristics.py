@@ -131,9 +131,8 @@ def remove_patient(data,solution):
     This operator takes a solution and removes a single non-mandatory patient
     """
     # Creating a list of non-mandatory patients
-    all_non_mandatory_patients = [patient_id for patient_id in data.patient_dict if not data.patient_dict[patient_id]["mandatory"]]
     assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
-    assigned_non_mandatory_patients = list(set(all_non_mandatory_patients) & set(assigned_patients))
+    assigned_non_mandatory_patients = list(set(data.all_non_mandatory_patients) & set(assigned_patients))
 
     # If cannot remove patient then return
     if(len(assigned_non_mandatory_patients) == 0):
@@ -234,9 +233,8 @@ def change_patient_theater(data,solution):
 
 
 def add_nurse_room(data,solution):
-    # Creating a list of all nurses and selecting one
-    all_nurses = [nurse_id for nurse_id in data.nurse_dict]
-    nurse_id = rd.choices(all_nurses)[0]
+    # Calling from a list of all nurses and selecting one
+    nurse_id = rd.choices(data.all_nurses)[0]
     nurse = data.nurse_dict[nurse_id]
 
     # Selecting a shift and a room to add
@@ -274,9 +272,8 @@ def add_nurse_room(data,solution):
 
 
 def remove_nurse_room(data,solution):
-    # Creating a list of all nurses and selecting one
-    all_nurses = [nurse_id for nurse_id in data.nurse_dict]
-    nurse_id = rd.choices(all_nurses)[0]
+    # Calling from a list of all nurses and selecting one
+    nurse_id = rd.choices(data.all_nurses)[0]
 
     # Updating the working shifts
     new_nurse_assignments = []
