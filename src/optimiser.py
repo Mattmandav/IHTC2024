@@ -48,7 +48,7 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
 
 # Optimisation class
 class Optimiser():
-    def __init__(self, data, time_limit = 60, time_tolerance = 5):
+    def __init__(self, data, time_limit = 120, time_tolerance = 5):
         # Key values for optimiser
         self.data = data
         self.cores = 4
@@ -503,16 +503,18 @@ class Optimiser():
         best_solution_value = self.solution_check(solution)["Cost"]
         current_solution = solution
         current_solution_value = self.solution_check(solution)["Cost"]
-        
+        solution_pool=[]
+        for p in range(pool_size):
+                solution_pool.append(copy.deepcopy(current_solution))
         # Applying heuristic
         while self.remaining_time > self.time_tolerance:
             # Timing iteration
             time_start = time.time()
 
             # Making copies of solution
-            solution_pool = []
-            for p in range(pool_size):
-                solution_pool.append(copy.deepcopy(current_solution))
+            
+            #for p in range(pool_size):
+            #    solution_pool.append(copy.deepcopy(current_solution))
 
             # Applying moves
             index_sols = [(solution_pool[p],p) for p in range(pool_size)]
@@ -540,12 +542,16 @@ class Optimiser():
                 print("New best solution found! Score:",temp_best_value)
                 best_solution = copy.deepcopy(temp_best)
                 best_solution_value = copy.deepcopy(temp_best_value)
-
+            
+            solution_pool = []
+            for i in range(len(values)):
             # Deciding whether to accept new solution as current solution
-            if(temp_best_value < current_solution_value):
-                current_solution = copy.deepcopy(temp_best)
-                current_solution_value = copy.deepcopy(temp_best_value)
-
+                if(values[i] < current_solution_value or values[i] < (best_solution_value + 0.001*best_solution_value)):
+                    current_solution = copy.deepcopy(new_solutions[i])
+                    current_solution_value = copy.deepcopy(values[i])
+                    solution_pool.append(copy.deepcopy(current_solution))
+            while len(solution_pool)<pool_size:
+                solution_pool.append(copy.deepcopy(best_solution))
             # Updating the time remaining
             self.remaining_time = self.remaining_time - (time.time() - time_start)
 

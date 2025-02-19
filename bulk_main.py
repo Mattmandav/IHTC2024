@@ -15,8 +15,8 @@ Should take a maximum of 400 minutes (7 hours) to re-run all instances.
 
 # Parameters
 data_folder = "data"
-solutions_folder = "solutions"
-time_taken = 5
+solutions_folder = "solutionspop01prr"
+time_taken = 600
 time_tolerance = 2
 
 # Arguments
