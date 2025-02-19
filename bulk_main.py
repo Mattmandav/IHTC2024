@@ -17,8 +17,8 @@ Should take a maximum of 400 minutes (7 hours) to re-run all instances.
 # Parameters
 data_folder = "data/instances"
 solutions_folder = "data/solutions"
-time_taken = 5
-time_tolerance = 2
+time_taken = 120
+time_tolerance = 20
 
 # Arguments
 parser = argparse.ArgumentParser()
@@ -71,9 +71,8 @@ def bulk_run():
                 '--time_limit', '{}'.format(time_taken),
                 '--time_tolerance', '{}'.format(time_tolerance)]
                 )
-        break
     print()
-    #bulk_check()
+    bulk_check()
 
 
 # Doing things
