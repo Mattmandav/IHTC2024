@@ -31,7 +31,7 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5):
                                     time_tolerance = time_tolerance)
 
     # Run an optimisation method
-    solution = optimisation_object.optimise(method = "greedy")
+    solution = optimisation_object.optimise(method = "greedy" ) # method = "greedy" # None
     solution = optimisation_object.improvement_hyper_heuristic(solution)
     print(optimisation_object.solution_check(solution))
 
@@ -225,7 +225,7 @@ class Optimiser():
         # if(values["Violations"] > 0):
         #     return float('inf')
         # else:
-        return values["Cost"]
+        return values["Cost"]+1000*values["Violations"]
 
 
     """
@@ -534,11 +534,12 @@ class Optimiser():
             temp_best_violations = self.solution_check(temp_best)["Violations"]
 
             # Checking that the best solution is feasible
-            if(temp_best_violations > 0):
-                continue
+            #
 
             # Saving best solution
-            if(temp_best_value < best_solution_value):             
+            if(temp_best_value < best_solution_value):   
+                if(temp_best_violations > 0):
+                   continue          
                 print("New best solution found! Score:",temp_best_value)
                 best_solution = copy.deepcopy(temp_best)
                 best_solution_value = copy.deepcopy(temp_best_value)
@@ -546,7 +547,7 @@ class Optimiser():
             solution_pool = []
             for i in range(len(values)):
             # Deciding whether to accept new solution as current solution
-                if(values[i] < current_solution_value or values[i] < (best_solution_value + 0.001*best_solution_value)):
+                if(values[i] < current_solution_value or values[i] < (best_solution_value + 0.01*best_solution_value)):
                     current_solution = copy.deepcopy(new_solutions[i])
                     current_solution_value = copy.deepcopy(values[i])
                     solution_pool.append(copy.deepcopy(current_solution))

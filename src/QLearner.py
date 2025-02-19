@@ -232,20 +232,22 @@ class QLearner:
                 (default is 0)
         """
         #Create an array of size |States|*|Actions|, and then add initial Q-Value
-        if self.__n_states == None:
-            self.__q_table = np.zeros(self.__n_actions) + q_value
+        # if self.__n_states == None:
+        #     self.__q_table = np.zeros(self.__n_actions) + q_value
 
-        elif type(self.__n_states) == tuple and type(self.__n_actions) == tuple:
-            self.__q_table = np.zeros(self.__n_states + self.__n_actions) + q_value
+        # elif type(self.__n_states) == tuple and type(self.__n_actions) == tuple:
+        #     self.__q_table = np.zeros(self.__n_states + self.__n_actions) + q_value
 
-        elif type(self.__n_states) == tuple:
-            self.__q_table = np.zeros(self.__n_states + (self.__n_actions,)) + q_value
+        # elif type(self.__n_states) == tuple:
+        #     self.__q_table = np.zeros(self.__n_states + (self.__n_actions,)) + q_value
         
-        elif type(self.__n_actions) == tuple:
-            self.__q_table = np.zeros((self.__n_states,) + self.__n_actions) + q_value
+        # elif type(self.__n_actions) == tuple:
+        #     self.__q_table = np.zeros((self.__n_states,) + self.__n_actions) + q_value
         
-        else:
-            self.__q_table = np.zeros((self.__n_states,) + (self.__n_actions,)) + q_value
+        # else:
+        #     self.__q_table = np.zeros((self.__n_states,) + (self.__n_actions,)) + q_value
+
+        self.__q_table = np.zeros(self.__n_states + (self.__n_actions,)) + q_value
 
     def getQValue(self, state: tuple, action: tuple) -> float:
         """
@@ -304,8 +306,8 @@ class QLearner:
             state: tuple
                 state to find the argmax of
         """
-        if state == None:
-            return tuple(np.unravel_index(self.__q_table.argmax(), self.__q_table.shape))
+        # if state == None:
+        #     return tuple(np.unravel_index(self.__q_table.argmax(), self.__q_table.shape))
         return tuple(np.unravel_index(self.__q_table[state + (...,)].argmax(), self.__q_table[state + (...,)].shape))
     
     def getCurrentState(self) -> tuple:
@@ -352,11 +354,12 @@ class QLearner:
                 current realisation of the reward function given to teh Q-leaner
                 will be used to update the current Q(S,A) value
         """
-        if self.__n_states == None:
-            self.__q_table[action] = (1 - self.__learn_rate)*self.__q_table[action] + self.__learn_rate*reward
-        elif type(self.__n_states) == tuple and type(self.__n_actions) == tuple:
-            self.__q_table[self.__current_state + action] = (1 - self.__learn_rate)*self.__q_table[self.__current_state + action] + self.__learn_rate*(reward + self.__discount_factor*np.max(self.__q_table[self.__new_state + (...,)]))
-        elif type(self.__n_states) == tuple:
-            self.__q_table[self.__current_state + (action,)] = (1 - self.__learn_rate)*self.__q_table[self.__current_state + (action,)] + self.__learn_rate*(reward + self.__discount_factor*np.max(self.__q_table[self.__new_state + (...,)]))
-        else:
-            self.__q_table[(self.__current_state,)+(action,)] = (1 - self.__learn_rate)*self.__q_table[(self.__current_state,)+(action,)] + self.__learn_rate*(reward + self.__discount_factor*np.max(self.__q_table[(self.__new_state,) + (...,)]))    
+        # if self.__n_states == None:
+        #     self.__q_table[action] = (1 - self.__learn_rate)*self.__q_table[action] + self.__learn_rate*reward
+        # elif type(self.__n_states) == tuple and type(self.__n_actions) == tuple:
+        #     self.__q_table[self.__current_state + action] = (1 - self.__learn_rate)*self.__q_table[self.__current_state + action] + self.__learn_rate*(reward + self.__discount_factor*np.max(self.__q_table[self.__new_state + (...,)]))
+        # elif type(self.__n_states) == tuple:
+        #     self.__q_table[self.__current_state + (action,)] = (1 - self.__learn_rate)*self.__q_table[self.__current_state + (action,)] + self.__learn_rate*(reward + self.__discount_factor*np.max(self.__q_table[self.__new_state + (...,)]))
+        # else:
+        #     self.__q_table[(self.__current_state,)+(action,)] = (1 - self.__learn_rate)*self.__q_table[(self.__current_state,)+(action,)] + self.__learn_rate*(reward + self.__discount_factor*np.max(self.__q_table[(self.__new_state,) + (...,)]))    
+        self.__q_table[self.__current_state + (action,)] = (1 - self.__learn_rate)*self.__q_table[self.__current_state + (action,)] + self.__learn_rate*(reward + self.__discount_factor*np.max(self.__q_table[self.__new_state + (...,)]))
