@@ -19,6 +19,7 @@ if __name__ == "__main__":
         parser.add_argument('--time_limit',type=float,default="60")
         parser.add_argument('--time_tolerance',type=float,default="10")
         parser.add_argument('--plot',action='store_true')
+        parser.add_argument('--verbose',type=bool,default=False)
         args = parser.parse_args()
 
         # Extracting filename
@@ -45,10 +46,11 @@ if __name__ == "__main__":
                                seed = args.seed,
                                time_limit = args.time_limit,
                                time_tolerance = args.time_tolerance,
-                               verbose = args.plot)
+                               verbose = args.verbose)
 
         # Saving solution
         with open("{}sol_{}.json".format(args.output_folder,filename), "w") as outfile: 
+            solution.pop('operator')
             json.dump(solution, outfile, indent=2)
         
         # plot costs over time

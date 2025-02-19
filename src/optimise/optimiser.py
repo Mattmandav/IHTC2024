@@ -1,12 +1,11 @@
 import json
 import subprocess
-import os
 import time
 import multiprocessing as mp
-import copy
 import numpy as np
 import random as rd
 import tempfile
+import pickle
 
 import src.optimise.heuristics as llh
 import src.optimise.greedy as grd
@@ -35,6 +34,9 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verb
     solution = optimisation_object.optimise(method = "greedy")
     solution, costs = optimisation_object.improvement_hyper_heuristic(solution)
     print(optimisation_object.solution_check(solution))
+    if verbose:
+        pickle.dump(optimisation_object.hits, open("hits.pkl", "wb"))
+            
 
     # Reporting process
     print(f"Main function completed in {round(time.time() - time_start,2)} seconds!")
@@ -53,7 +55,7 @@ class Optimiser():
         # If logging we will record the hits and successes over time
         if self.verbose:
             # For logging purposes
-            self.hits = {'tried': 0, 'successful': 0}
+            self.hits = {'tried': 0, 'successful': 0, 'type': ['None'], 'Cost Reduction': [0]}
 
         self.instance_file_name = instance_file_name
         # Importing low level heuristics
@@ -97,7 +99,7 @@ class Optimiser():
         reasons = []
         with tempfile.NamedTemporaryFile() as solution_file:
             solution_file.write(json.dumps(solution).encode())
-            solution_file.seek(0)
+            solution_file.seek(0) # Not sure what this does (hard to find documentation) but makes it run quicker
             result = subprocess.run(
                 ['./bin/IHTP_Validator', self.instance_file_name, solution_file.name],
                 capture_output = True, # Python >= 3.7 only
@@ -121,7 +123,7 @@ class Optimiser():
 
         with tempfile.NamedTemporaryFile() as solution_file:
             solution_file.write(json.dumps(solution).encode())
-            solution_file.seek(0)
+            solution_file.seek(0) # Not sure what this does (hard to find documentation) but makes it run quicker
             result = subprocess.run(
                 ['./bin/IHTP_Validator', self.instance_file_name, solution_file.name],
                 capture_output = True, # Python >= 3.7 only
@@ -207,7 +209,9 @@ class Optimiser():
 
             # Selecting best solution of this pool
             temp_best_index = np.argmin([value['Cost'] for value in values])
-            temp_best =  new_solutions[temp_best_index]
+            temp_best =  new_solutions[temp_best_index] # This is the json for the temp_best solution
+
+            # Record costs and violations
             temp_best_value = values[temp_best_index]['Cost']
             temp_best_violations = values[temp_best_index]["Violations"]
 
@@ -217,7 +221,7 @@ class Optimiser():
 
             # Saving best solution
             if(temp_best_value < best_solution_value):
-                #print("New best solution found! Score:",temp_best_value)
+                
                 best_solution = temp_best
                 best_solution_value = temp_best_value
 
@@ -232,13 +236,15 @@ class Optimiser():
             if(temp_best_value < current_solution_value):
                 if self.verbose:
                     self.hits['successful'] += 1
+                    self.hits['type'].append(temp_best['operator'])
+                    self.hits['Cost Reduction'].append(current_solution_value - temp_best_value)
                 current_solution = temp_best
                 current_solution_value = temp_best_value
                 
             # Updating the time remaining
             self.remaining_time = self.remaining_time - (time.time() - time_start)
             if self.verbose:
-                print("Loops ran: {}, successes: {}".format(self.hits['tried'],self.hits['successful']))
+                print("Loops ran: {}, successes: {}, successful operators: {}".format(self.hits['tried'],self.hits['successful'],max(set(self.hits['type']), key=self.hits['type'].count)))
         # Return the best solution
         return best_solution, self.costs
 
@@ -251,6 +257,8 @@ class Optimiser():
         # Select an operator from the llh package to use
         operator_name = rd.choices(self.llh_names)[0]
         new_solution = eval("llh."+operator_name+"(self.data,solution)")
-            
+        
+        # Add the operator used
+        new_solution['operator'] = operator_name
         # Return final solution
         return new_solution
