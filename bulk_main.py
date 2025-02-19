@@ -32,13 +32,13 @@ def bulk_check():
     solutions = sorted(os.listdir(solutions_folder))
     print(solutions)
     for s in solutions:
+        if("test_" in s):
+            continue
         d = s[4:]
-        with open('{}/{}'.format(data_folder,d),'rb') as raw_data:
-            data = json.dumps(json.load(raw_data))
-        with open('{}/{}'.format(solutions_folder,s),'rb') as raw_sol:
-            sol = json.dumps(json.load(raw_sol))
+        data = '{}/{}'.format(data_folder,d)
+        sol_file = '{}/{}'.format(solutions_folder,s)
         result = subprocess.run(
-            ['./bin/IHTP_Validator_no_file_input', data, sol],
+            ['./bin/IHTP_Validator', data, sol_file],
             capture_output = True, # Python >= 3.7 only
             text = True # Python >= 3.7 only
             )
@@ -64,13 +64,16 @@ def bulk_run():
     for d in data:
         print(f"Optimising instance {d}")
         subprocess.run(
-                ['python', 'main.py', '{}/{}'.format(data_folder,d), 
-                '--output_folder', '{}'.format(solutions_folder),
+                ['python', 'main.py', 
+                 str(d),
+                 '--input_folder', data_folder, 
+                 '--output_folder', solutions_folder,
                 '--time_limit', '{}'.format(time_taken),
                 '--time_tolerance', '{}'.format(time_tolerance)]
                 )
+        break
     print()
-    bulk_check()
+    #bulk_check()
 
 
 # Doing things
