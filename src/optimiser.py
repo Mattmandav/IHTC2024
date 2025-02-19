@@ -222,10 +222,10 @@ class Optimiser():
 
     def solution_score(self, solution, core_name):
         values = self.solution_check(solution, core_name=core_name)
-        if(values["Violations"] > 0):
-            return float('inf')
-        else:
-            return values["Cost"]
+        # if(values["Violations"] > 0):
+        #     return float('inf')
+        # else:
+        return values["Cost"]
 
 
     """
