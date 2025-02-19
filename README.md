@@ -1,9 +1,25 @@
+#### Example usage of IHTP_Validator_no_file_input.cc
+you need to double escape the json string (i.e. do a json dump on the output json)
+```python
+import json
+import os
+import subprocess
+file = json.dumps(json.load(open('i01.json','rb')))
+file_2 = json.dumps(json.load(open('sol_i01.json','rb')))
+result = subprocess.run(
+        ['./IHTP_Validator', file, file_2],
+            capture_output = True, # Python >= 3.7 only
+            text = True # Python >= 3.7 only
+        )
+print(result.stdout)
+```
+
 # IHTC2024
 Development space for the IHTC 2024.
 
 https://ihtc2024.github.io/
 
-# Ideal Project Structure
+## Ideal Project Structure
 ```bash
 .
 ├── bin
@@ -20,8 +36,9 @@ https://ihtc2024.github.io/
 │   │   └── instance_dataclass.py
 │   ├── __init__.py
 │   ├── optimise
-│   │   ├── heuristics.py
 │   │   ├── __init__.py
+│   │   ├── greedy.py
+│   │   ├── heuristics.py
 │   │   └── optimiser.py
 │   ├── policies
 │   │   ├── acceptance.py
@@ -29,8 +46,7 @@ https://ihtc2024.github.io/
 │   │   └── qlearner.py
 │   └── utils
 │       ├── __init__.py
-│       ├── plotter.py
-│       └── validator_interface.py
+│       └──  plotter.py
 └── tests
     ├── bulk_main.py
     ├── __init__.py
