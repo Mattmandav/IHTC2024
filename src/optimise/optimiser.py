@@ -35,7 +35,7 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verb
     solution, costs = optimisation_object.improvement_hyper_heuristic(solution)
     print(optimisation_object.solution_check(solution))
     if verbose:
-        pickle.dump(optimisation_object.hits, open("hits.pkl", "wb"))
+        pickle.dump(optimisation_object.hits, open("debug/hits.pkl", "wb"))
             
 
     # Reporting process
