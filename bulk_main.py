@@ -71,6 +71,7 @@ def bulk_run():
                 '--time_limit', '{}'.format(time_taken),
                 '--time_tolerance', '{}'.format(time_tolerance)]
                 )
+        print()
     print()
     bulk_check()
 

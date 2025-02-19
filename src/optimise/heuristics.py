@@ -152,9 +152,43 @@ def remove_patient(data,solution):
     return solution
 
 
+# Remove any patient
+def remove_patient_any(data,solution):
+    """
+    This operator takes a solution and removes a single non-mandatory patient
+    """
+    # Creating a list of non-mandatory patients
+    assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+
+    # If cannot remove patient then return
+    if(len(assigned_patients) == 0):
+        return solution
+
+    # Selecting a patient to remove
+    patient_to_remove = rd.choices(assigned_patients)[0]
+
+    # Removing patient
+    new_patients = []
+    for current_patient in solution["patients"]:
+        if(current_patient["id"] != patient_to_remove):
+            new_patients.append(current_patient)
+    solution["patients"] = new_patients
+
+    # Return modified solution
+    return solution
+
+
+
 # Applies the two moves sequentially
 def remove_then_insert_patient(data,solution):
     solution = remove_patient(data,solution)
+    solution = insert_patient(data,solution)
+    return solution
+
+
+# Applies the two moves sequentially
+def remove_then_insert_patient_any(data,solution):
+    solution = remove_patient_any(data,solution)
     solution = insert_patient(data,solution)
     return solution
 
