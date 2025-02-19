@@ -13,7 +13,7 @@ from src.data.instance import Data
 from src.policies import qlearner
 
 # Main optimisation function
-def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verbose = False):
+def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verbose = False, heuristic_selection = "random"):
     # Starting function timer
     time_start = time.time()
 
@@ -29,7 +29,9 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verb
                                     instance_file_name = input_file,
                                     time_limit = time_limit,
                                     time_tolerance = time_tolerance,
-                                    verbose = verbose)
+                                    verbose = verbose,
+                                    heuristic_selection = heuristic_selection
+                                    )
 
     # Run an optimisation method
     solution = optimisation_object.optimise(method = "greedy")
@@ -47,7 +49,7 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verb
 
 # Optimisation class
 class Optimiser():
-    def __init__(self, raw_data, instance_file_name, time_limit = 60, time_tolerance = 5, verbose = False):
+    def __init__(self, raw_data, instance_file_name, time_limit = 60, time_tolerance = 5, verbose = False, heuristic_selection = "random"):
         # Get number of successful improvements over all iterations
         
         self.verbose = verbose
@@ -57,7 +59,8 @@ class Optimiser():
         if self.verbose:
             # For logging purposes
             self.hits = {'tried': 0, 'successful': 0, 'type': ['None'], 'Cost Reduction': [0]}
-            pass
+        
+        self.heuristic_selection = heuristic_selection # Random or Qlearner
 
         self.instance_file_name = instance_file_name
         # Importing low level heuristics
@@ -243,8 +246,11 @@ class Optimiser():
 
             # Applying moves
             with mp.Pool(self.cores) as p:
-                # Since map is ordered we don't need to worry about which solution is which
-                new_solutions = p.map(self.solution_adjustment,solution_pool)      
+                # Find which strategy selection is used
+                if (self.heuristic_selection == 'random'):
+                    new_solutions = p.map(self.random_solution_adjustment,solution_pool)
+                elif (self.heuristic_selection == 'qlearner'):
+                    new_solutions = p.map(self.qlearner_solution_adjustment,solution_pool)    
                 values = p.map(self.solution_score,new_solutions)
 
             # Append number of attempts
@@ -279,13 +285,12 @@ class Optimiser():
             for i in range(len(values)):
                 if(temp_best_value < current_solution_value
                    or values[i]["Cost"] < (best_solution_value + 0.01*best_solution_value)):
-                        current_solution = new_solutions[i]
                         solution_pool.append(new_solutions[i])
                         if self.verbose:
                             self.hits['successful'] += 1
                             self.hits['type'].append(temp_best['operator'])
                             self.hits['Cost Reduction'].append(current_solution_value - temp_best_value)
-                            pass
+                            
                         current_solution = temp_best
                         current_solution_value = temp_best_value
                 
@@ -296,13 +301,27 @@ class Optimiser():
             # Updating the time remaining
             self.remaining_time = self.remaining_time - (time.time() - time_start)
             if self.verbose:
-                print("Loops ran: {}, successes: {}, successful operators: {}".format(self.hits['tried'],self.hits['successful'],max(set(self.hits['type']), key=self.hits['type'].count)))
-                pass
+                print("Loops ran: {}, Accepted Operators: {}, Most used operators: {}, Most Recent operator: {}".format(self.hits['tried'],self.hits['successful'],max(set(self.hits['type']), key=self.hits['type'].count),self.hits['type'][-1]))
+                
         # Return the best solution
         return best_solution, self.costs
 
-    
-    def solution_adjustment(self,solution):
+    def random_solution_adjustment(self,solution):
+        """
+        Takes self and solution as input, applies an operator and returns new solution.
+        """
+
+        # Select an operator from the llh package to use
+        self.llh_names.pop(-1)
+        operator_name = rd.choices(self.llh_names)[0]
+        new_solution = eval("llh."+operator_name+"(self.data,solution)")
+        
+        # Add the operator used
+        new_solution['operator'] = operator_name
+        # Return final solution
+        return new_solution
+
+    def qlearner_solution_adjustment(self,solution):
         """
         Takes self and solution as input, applies an operator and returns new solution.
         """
