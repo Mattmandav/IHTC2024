@@ -10,6 +10,7 @@ import pickle
 import src.optimise.heuristics as llh
 import src.optimise.greedy as grd
 from src.data.instance import Data
+from src.policies import qlearner
 
 # Main optimisation function
 def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verbose = False):
@@ -55,7 +56,8 @@ class Optimiser():
         # If logging we will record the hits and successes over time
         if self.verbose:
             # For logging purposes
-            self.hits = {'tried': 0, 'successful': 0, 'type': ['None'], 'Cost Reduction': [0]}
+            #self.hits = {'tried': 0, 'successful': 0, 'type': ['None'], 'Cost Reduction': [0]}
+            pass
 
         self.instance_file_name = instance_file_name
         # Importing low level heuristics
@@ -63,6 +65,10 @@ class Optimiser():
                           callable(getattr(llh,name)) and
                           not name.startswith("__")
                           ]
+        self.llh_names = self.llh_names+["End"]
+        self.llh_dict = {}
+        for name in self.llh_names:
+            self.llh_dict[name] = len(self.llh_dict)
 
         # Key values for optimiser
         self.cores = 4
@@ -83,6 +89,42 @@ class Optimiser():
                       "SurgeonTransfer": [],
                       "PatientDelay": [],
                       "ElectiveUnscheduledPatients": []}
+        
+        # QLEARNING ELEMENTS
+        max_sequence_length = 10 # putting one here to allow for test case to be ran
+        number_of_low_level_heuristics = len(self.llh_names)
+        base_learn_rate = 0.1
+        discount_factor = 1
+        #need self object for the qlearner agent, so this is can be called later on
+        self.agent = qlearner.QLearner(
+            n_states = (max_sequence_length,number_of_low_level_heuristics+2), #need pointers for these 2 values
+            n_actions = number_of_low_level_heuristics + 2, #Plus one to signfy the action of ending the sequence of LLHs
+            learn_rate = base_learn_rate,
+            discount_factor = discount_factor,
+            q_table = None,
+            current_state = None,
+            new_state = None     
+        )
+
+        #Initialise the qtable using inputs above
+        #Default q_value is 0.0, set to 1.0 to be optimistic (if using 1-0 reward)
+        starting_q_value = 1.0
+        self.agent.initialiseQTable(q_value = starting_q_value)
+
+        #decaying learning rate setup
+        self.agent.setLearnRate(1)
+        self.NVisits = np.zeros((max_sequence_length,number_of_low_level_heuristics+2, number_of_low_level_heuristics+2))
+
+        #maximum exploration probability for decaying e-greedy
+        self.max_explore = 1
+
+        # maximum exploration probability for decaying e-greedy
+        self.min_explore = 0.005
+
+        # rate of decay for decaying e-greedy
+        self.explore_decay_rate = 0.00005
+
+        self.episode = 0
 
         # Initial remaining time
         self.remaining_time = self.remaining_time - (time.time() - self.time_start)
@@ -135,11 +177,8 @@ class Optimiser():
                 
     def solution_score(self, solution):
         values = self.solution_check(solution)
-        if(values["Violations"] > 0):
-            values["Cost"] = np.inf
-            return values
-        else:
-            return values
+        values["Cost"] += 1000*values["Violations"]
+        return values
 
 
     """
@@ -187,15 +226,20 @@ class Optimiser():
         current_solution = solution
         current_solution_value = best_solution_value
         
+        # Making copies of solution
+        solution_pool = []
+        for p in range(pool_size):
+            solution_pool.append(current_solution)
+        
         # Applying heuristic
         while self.remaining_time > self.time_tolerance:
             # Timing iteration
             time_start = time.time()
 
             # Making copies of solution
-            solution_pool = []
-            for p in range(pool_size):
-                solution_pool.append(current_solution)
+            # solution_pool = []
+            # for p in range(pool_size):
+            #     solution_pool.append(current_solution)
 
             # Applying moves
             with mp.Pool(self.cores) as p:
@@ -205,7 +249,8 @@ class Optimiser():
 
             # Append number of attempts
             if self.verbose:
-                self.hits['tried'] += 1
+                #self.hits['tried'] += 1
+                pass
 
             # Selecting best solution of this pool
             temp_best_index = np.argmin([value['Cost'] for value in values])
@@ -214,13 +259,11 @@ class Optimiser():
             # Record costs and violations
             temp_best_value = values[temp_best_index]['Cost']
             temp_best_violations = values[temp_best_index]["Violations"]
-
-            # Checking that the best solution is feasible
-            if(temp_best_violations > 0):
-                continue
-
+            
             # Saving best solution
             if(temp_best_value < best_solution_value):
+                if(temp_best_violations > 0):
+                   continue 
                 
                 best_solution = temp_best
                 best_solution_value = temp_best_value
@@ -233,18 +276,29 @@ class Optimiser():
                     self.solution_collect_costs(temp_best)
 
             # Deciding whether to accept new solution as current solution
-            if(temp_best_value < current_solution_value):
-                if self.verbose:
-                    self.hits['successful'] += 1
-                    self.hits['type'].append(temp_best['operator'])
-                    self.hits['Cost Reduction'].append(current_solution_value - temp_best_value)
-                current_solution = temp_best
-                current_solution_value = temp_best_value
+            solution_pool = []
+            for i in range(len(values)):
+                if(temp_best_value < current_solution_value
+                   or values[i]["Cost"] < (best_solution_value + 0.01*best_solution_value)):
+                        current_solution = new_solutions[i]
+                        solution_pool.append(new_solutions[i])
+                        if self.verbose:
+                            #self.hits['successful'] += 1
+                            #self.hits['type'].append(temp_best['operator'])
+                            #self.hits['Cost Reduction'].append(current_solution_value - temp_best_value)
+                            pass
+                        current_solution = temp_best
+                        current_solution_value = temp_best_value
                 
+            # Padding solutions
+            while len(solution_pool)<pool_size:
+                solution_pool.append(best_solution)
+
             # Updating the time remaining
             self.remaining_time = self.remaining_time - (time.time() - time_start)
             if self.verbose:
-                print("Loops ran: {}, successes: {}, successful operators: {}".format(self.hits['tried'],self.hits['successful'],max(set(self.hits['type']), key=self.hits['type'].count)))
+                #print("Loops ran: {}, successes: {}, successful operators: {}".format(self.hits['tried'],self.hits['successful'],max(set(self.hits['type']), key=self.hits['type'].count)))
+                pass
         # Return the best solution
         return best_solution, self.costs
 
@@ -253,12 +307,84 @@ class Optimiser():
         """
         Takes self and solution as input, applies an operator and returns new solution.
         """
-
-        # Select an operator from the llh package to use
-        operator_name = rd.choices(self.llh_names)[0]
-        new_solution = eval("llh."+operator_name+"(self.data,solution)")
         
-        # Add the operator used
-        new_solution['operator'] = operator_name
+        new_solution = solution
+        number_of_low_level_heuristics = len(self.llh_names)
+        max_sequence_length = 10
+        self.agent.setCurrentState((0, number_of_low_level_heuristics + 1))
+
+        #epsilon-Greedy policy for picking actions dervied from Q
+        #Magic number here - can be changed and switched to a better regime
+        # explore_prob = 0.1
+
+        self.episode += 1
+
+        # Update explore probability
+        explore_prob = self.min_explore + (self.max_explore - self.min_explore)*np.exp(-self.explore_decay_rate*self.episode)
+
+        #e.g. decaying epslion-greedy, UCB (Book: warren B. Powell Approximate Dynamic Programming has some more in)
+        if np.random.uniform() < explore_prob:
+            # Explore Randomly
+            operator_number = self.llh_dict[rd.choices(self.llh_names[:-1])[0]]
+        else:
+            # Exploit best action
+            operator_number = self.agent.getBestAction()
+        
+        # Set a dummy new state to get into the while loop
+        self.agent.setNewState((1,None))
+
+        # How many times operator has been taken
+        self.NVisits[self.agent.getCurrentState()+(operator_number,)] += 1
+
+        # Find dynamic learning rate
+        self.agent.setLearnRate(1/self.NVisits[self.agent.getCurrentState()+(operator_number,)])
+
+        # Hold current score to evaluate reward later on
+        current_score = self.solution_check(solution)["Cost"]
+
+        # Applying the sequence
+        while self.llh_names[operator_number] != "End" and self.agent.getNewState()[0] < max_sequence_length: 
+            # Apply operator
+            new_solution = eval("llh."+self.llh_names[operator_number]+"(self.data,solution)")
+            
+            #New state is now length of the sequence and last LLH chosen
+            self.agent.setNewState((self.agent.getCurrentState()[0] + 1, operator_number))
+
+            #evaluate new solution score
+            new_score = self.solution_check(new_solution)["Cost"]
+            
+            #evaluate reward = move in score for qlearner
+            your_mums_reward = min(max(current_score - new_score,0),1)
+
+            #Q-learning update
+            self.agent.QLearningUpdate(action = operator_number, reward = your_mums_reward)
+
+            #New state now becomes the current state
+            self.agent.setCurrentState(self.agent.getNewState())
+
+            current_score = new_score
+
+            self.episode += 1
+
+            explore_prob = self.min_explore + (self.max_explore - self.min_explore)*np.exp(-self.explore_decay_rate*self.episode)
+
+            #apply the epsilon-greedy policy again
+            if np.random.uniform() < explore_prob:
+                #Explore Randomly
+                # Note!! this time we can choose 0 to exit out of the LLH sequence
+                operator_number = self.llh_dict[rd.choices(self.llh_names)[0]]
+                #update new state with sequence length+1 and next used operator
+                self.agent.setNewState((self.agent.getCurrentState()[0] + 1,operator_number))
+            else:
+                #Exploit best action
+                operator_number = self.agent.getBestAction()
+                 #update new state with sequence length+1 and next used operator
+                self.agent.setNewState((self.agent.getCurrentState()[0] + 1,operator_number))
+
+            self.NVisits[self.agent.getCurrentState()+(operator_number,)] += 1
+
+            #find dynamic learning rate
+            self.agent.setLearnRate(1/self.NVisits[self.agent.getCurrentState()+(operator_number,)])
+
         # Return final solution
         return new_solution
