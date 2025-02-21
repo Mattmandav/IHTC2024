@@ -1,17 +1,10 @@
-#### Example usage of IHTP_Validator_no_file_input.cc
-you need to double escape the json string (i.e. do a json dump on the output json)
-```python
-import json
-import os
-import subprocess
-file = json.dumps(json.load(open('i01.json','rb')))
-file_2 = json.dumps(json.load(open('sol_i01.json','rb')))
-result = subprocess.run(
-        ['./IHTP_Validator', file, file_2],
-            capture_output = True, # Python >= 3.7 only
-            text = True # Python >= 3.7 only
-        )
-print(result.stdout)
+#### Example Run
+```bash
+# Run using the random selection
+python main.py [INSTANCE NAME] --selection=random
+
+# Run default (QLearner) + verbose output
+python main.py [INSTANCE NAME] --verbose
 ```
 
 # IHTC2024
