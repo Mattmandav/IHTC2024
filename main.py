@@ -20,6 +20,7 @@ if __name__ == "__main__":
         parser.add_argument('--time_tolerance',type=float,default="10")
         parser.add_argument('--plot',action='store_true')
         parser.add_argument('--verbose',action='store_true')
+        parser.add_argument('--selection',type=str,default="qlearner",choices=["qlearner","random"])
         args = parser.parse_args()
 
         # Extracting filename
@@ -46,7 +47,8 @@ if __name__ == "__main__":
                                seed = args.seed,
                                time_limit = args.time_limit,
                                time_tolerance = args.time_tolerance,
-                               verbose = args.verbose)
+                               verbose = args.verbose,
+                               heuristic_selection=args.selection)
 
         # Saving solution
         with open("{}sol_{}.json".format(args.output_folder,filename), "w") as outfile: 
