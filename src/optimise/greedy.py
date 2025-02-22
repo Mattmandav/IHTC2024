@@ -86,16 +86,9 @@ def greedy_allocation(self,data):
         not_allocated = sorted(not_allocated, key=lambda x: (x[1],x[2]))
         not_allocated = [p[0] for p in not_allocated]
 
-        # Record time taken
-        self.remaining_time = self.remaining_time - (time.time() - time_start)
-
         # Loop again if not all patients are allocated
         if(len(not_allocated) == 0):
             break
-        # If not enough time return current solution
-        elif(self.remaining_time <= self.time_tolerance):
-            print("Exiting greedy algo due to time limit")
-            return solution
         else:
             all_mandatory_patients = not_allocated + admitted_mandatory_patients
 
@@ -172,10 +165,8 @@ def greedy_allocation(self,data):
         if(len(nurse_allocation[nurse_id]["assignments"]) > 0):
             solution["nurses"].append(nurse_allocation[nurse_id])
 
-    # Recording time
-    self.remaining_time = self.remaining_time - (time.time() - time_start)
 
-    return solution, self.remaining_time
+    return solution
     
 
 def greedy_patient_allocation(data,solution,d,patient_id):

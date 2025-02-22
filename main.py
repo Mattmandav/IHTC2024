@@ -17,7 +17,7 @@ if __name__ == "__main__":
         parser.add_argument('--input_folder',type=str,default="data/instances")
         parser.add_argument('--output_folder',type=str,default="data/solutions")
         parser.add_argument('--time_limit',type=float,default="60")
-        parser.add_argument('--time_tolerance',type=float,default="10")
+        parser.add_argument('--time_tolerance',type=float,default="5")
         parser.add_argument('--plot',action='store_true')
         parser.add_argument('--verbose',action='store_true')
         parser.add_argument('--selection',type=str,default="qlearner",choices=["qlearner","random"])

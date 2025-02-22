@@ -14,8 +14,6 @@ from src.policies import qlearner
 
 # Main optimisation function
 def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verbose = False, heuristic_selection = "random", sequence_length=1):
-    # Starting function timer
-    time_start = time.time()
 
     # Open and read the JSON file
     with open(input_file, 'r') as file:
@@ -42,7 +40,7 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verb
             
 
     # Reporting process
-    print(f"Main function completed in {round(time.time() - time_start,2)} seconds!")
+    print(f"Main function completed!")
     print()
 
     return solution, costs
@@ -54,6 +52,7 @@ class Optimiser():
         
         self.verbose = verbose
 
+        self.time_limit = time_limit
 
         # If logging we will record the hits and successes over time
         if self.verbose:
@@ -76,8 +75,6 @@ class Optimiser():
 
         # Key values for optimiser
         self.cores = 4
-        self.remaining_time = time_limit
-        self.time_start = time.time()
         self.time_tolerance = time_tolerance
 
         # Processing instance data
@@ -129,10 +126,6 @@ class Optimiser():
         self.explore_decay_rate = 0.00005
 
         self.episode = 0
-
-        # Initial remaining time
-        self.remaining_time = self.remaining_time - (time.time() - self.time_start)
-
 
     """
     Solution checking
@@ -197,7 +190,7 @@ class Optimiser():
         # Apply greedy heuristic
         elif(method == "greedy"):
             t0 = time.time()
-            [solution, self.remaining_time] = grd.greedy_allocation(self,self.data)
+            solution = grd.greedy_allocation(self,self.data)
             print("Greedy approach took {} seconds".format(time.time()-t0))
         # Method doesn't exist
         else:
@@ -207,7 +200,7 @@ class Optimiser():
 
 
     """
-    Hyper-heurisic improvement
+    Hyper-heurisic improvemen
     """
     
     def improvement_hyper_heuristic(self, solution, pool_size = 4):
@@ -219,12 +212,9 @@ class Optimiser():
         p% chance if the solution is not improving.
         The best solution is always saved.
         """
-        # Checking if we have time to improve solution
-        if(self.remaining_time <= self.time_tolerance):
-            return solution
         
         # Preallocating features
-        print(f"Starting hyper-heuristic (Remaining time: {round(self.remaining_time,2)} seconds)")
+        print(f"Starting hyper-heuristic")
         best_solution = solution
         best_solution_value = self.solution_check(solution)["Cost"]
         current_solution = solution
@@ -236,9 +226,8 @@ class Optimiser():
             solution_pool.append(current_solution)
         
         # Applying heuristic
-        while self.remaining_time > self.time_tolerance:
-            # Timing iteration
-            time_start = time.time()
+        t_end = time.time() + (self.time_limit - self.time_tolerance)
+        while time.time() < t_end:
 
             # Making copies of solution
             # solution_pool = []
@@ -299,8 +288,6 @@ class Optimiser():
             while len(solution_pool)<pool_size:
                 solution_pool.append(best_solution)
 
-            # Updating the time remaining
-            self.remaining_time = self.remaining_time - (time.time() - time_start)
             if self.verbose:
                 print("Loops ran: {}, Accepted Operators: {}, Most used operators: {}, Most Recent operator: {}".format(self.hits['tried'],self.hits['successful'],max(set(self.hits['type']), key=self.hits['type'].count),self.hits['type'][-1]))
                 
