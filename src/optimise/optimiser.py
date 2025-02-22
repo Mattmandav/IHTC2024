@@ -13,9 +13,7 @@ from src.data.instance import Data
 from src.policies import qlearner
 
 # Main optimisation function
-def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verbose = False, heuristic_selection = "random"):
-    # Starting function timer
-    time_start = time.time()
+def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verbose = False, heuristic_selection = "random", sequence_length=1):
 
     # Open and read the JSON file
     with open(input_file, 'r') as file:
@@ -30,8 +28,8 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verb
                                     time_limit = time_limit,
                                     time_tolerance = time_tolerance,
                                     verbose = verbose,
-                                    heuristic_selection = heuristic_selection
-                                    )
+                                    heuristic_selection = heuristic_selection,
+                                    sequence_length=sequence_length)
 
     # Run an optimisation method
     solution = optimisation_object.optimise(method = "greedy")
@@ -42,18 +40,19 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verb
             
 
     # Reporting process
-    print(f"Main function completed in {round(time.time() - time_start,2)} seconds!")
+    print(f"Main function completed!")
     print()
 
     return solution, costs
 
 # Optimisation class
 class Optimiser():
-    def __init__(self, raw_data, instance_file_name, time_limit = 60, time_tolerance = 5, verbose = False, heuristic_selection = "random"):
+    def __init__(self, raw_data, instance_file_name, time_limit = 60, time_tolerance = 5, verbose = False, heuristic_selection = "qlearner", sequence_length=1):
         # Get number of successful improvements over all iterations
         
         self.verbose = verbose
 
+        self.time_limit = time_limit
 
         # If logging we will record the hits and successes over time
         if self.verbose:
@@ -68,15 +67,14 @@ class Optimiser():
                           callable(getattr(llh,name)) and
                           not name.startswith("__")
                           ]
-        self.llh_names = self.llh_names+["End"]
+        if self.heuristic_selection == "qlearner":
+            self.llh_names = self.llh_names+["End"]
         self.llh_dict = {}
         for name in self.llh_names:
             self.llh_dict[name] = len(self.llh_dict)
 
         # Key values for optimiser
         self.cores = 4
-        self.remaining_time = time_limit
-        self.time_start = time.time()
         self.time_tolerance = time_tolerance
 
         # Processing instance data
@@ -94,13 +92,13 @@ class Optimiser():
                       "ElectiveUnscheduledPatients": []}
         
         # QLEARNING ELEMENTS
-        max_sequence_length = 10 # putting one here to allow for test case to be ran
+        self.max_sequence_length = sequence_length # putting one here to allow for test case to be ran
         number_of_low_level_heuristics = len(self.llh_names)
         base_learn_rate = 0.1
         discount_factor = 1
         #need self object for the qlearner agent, so this is can be called later on
         self.agent = qlearner.QLearner(
-            n_states = (max_sequence_length,number_of_low_level_heuristics+2), #need pointers for these 2 values
+            n_states = (self.max_sequence_length,number_of_low_level_heuristics+2), #need pointers for these 2 values
             n_actions = number_of_low_level_heuristics + 2, #Plus one to signfy the action of ending the sequence of LLHs
             learn_rate = base_learn_rate,
             discount_factor = discount_factor,
@@ -116,7 +114,7 @@ class Optimiser():
 
         #decaying learning rate setup
         self.agent.setLearnRate(1)
-        self.NVisits = np.zeros((max_sequence_length,number_of_low_level_heuristics+2, number_of_low_level_heuristics+2))
+        self.NVisits = np.zeros((self.max_sequence_length,number_of_low_level_heuristics+2, number_of_low_level_heuristics+2))
 
         #maximum exploration probability for decaying e-greedy
         self.max_explore = 1
@@ -128,10 +126,6 @@ class Optimiser():
         self.explore_decay_rate = 0.00005
 
         self.episode = 0
-
-        # Initial remaining time
-        self.remaining_time = self.remaining_time - (time.time() - self.time_start)
-
 
     """
     Solution checking
@@ -196,7 +190,7 @@ class Optimiser():
         # Apply greedy heuristic
         elif(method == "greedy"):
             t0 = time.time()
-            [solution, self.remaining_time] = grd.greedy_allocation(self,self.data)
+            solution = grd.greedy_allocation(self,self.data)
             print("Greedy approach took {} seconds".format(time.time()-t0))
         # Method doesn't exist
         else:
@@ -206,7 +200,7 @@ class Optimiser():
 
 
     """
-    Hyper-heurisic improvement
+    Hyper-heurisic improvemen
     """
     
     def improvement_hyper_heuristic(self, solution, pool_size = 4):
@@ -218,12 +212,9 @@ class Optimiser():
         p% chance if the solution is not improving.
         The best solution is always saved.
         """
-        # Checking if we have time to improve solution
-        if(self.remaining_time <= self.time_tolerance):
-            return solution
         
         # Preallocating features
-        print(f"Starting hyper-heuristic (Remaining time: {round(self.remaining_time,2)} seconds)")
+        print(f"Starting hyper-heuristic")
         best_solution = solution
         best_solution_value = self.solution_check(solution)["Cost"]
         current_solution = solution
@@ -235,9 +226,8 @@ class Optimiser():
             solution_pool.append(current_solution)
         
         # Applying heuristic
-        while self.remaining_time > self.time_tolerance:
-            # Timing iteration
-            time_start = time.time()
+        t_end = time.time() + (self.time_limit - self.time_tolerance)
+        while time.time() < t_end:
 
             # Making copies of solution
             # solution_pool = []
@@ -298,8 +288,6 @@ class Optimiser():
             while len(solution_pool)<pool_size:
                 solution_pool.append(best_solution)
 
-            # Updating the time remaining
-            self.remaining_time = self.remaining_time - (time.time() - time_start)
             if self.verbose:
                 print("Loops ran: {}, Accepted Operators: {}, Most used operators: {}, Most Recent operator: {}".format(self.hits['tried'],self.hits['successful'],max(set(self.hits['type']), key=self.hits['type'].count),self.hits['type'][-1]))
                 
@@ -312,12 +300,15 @@ class Optimiser():
         """
 
         # Select an operator from the llh package to use
-        self.llh_names.pop(-1)
-        operator_name = rd.choices(self.llh_names)[0]
-        new_solution = eval("llh."+operator_name+"(self.data,solution)")
+        operator_names = rd.choices(self.llh_names,k=rd.randint(1,self.max_sequence_length))
+        init_solution = solution
+
+        for operator in operator_names:
+            new_solution = eval("llh."+operator+"(self.data,init_solution)")
+            init_solution = new_solution
         
         # Add the operator used
-        new_solution['operator'] = operator_name
+        new_solution['operator'] = str(operator_names)
         # Return final solution
         return new_solution
 
@@ -328,7 +319,6 @@ class Optimiser():
         
         new_solution = solution
         number_of_low_level_heuristics = len(self.llh_names)
-        max_sequence_length = 10
         self.agent.setCurrentState((0, number_of_low_level_heuristics + 1))
 
         #epsilon-Greedy policy for picking actions dervied from Q
@@ -361,7 +351,7 @@ class Optimiser():
         current_score = self.solution_check(solution)["Cost"]
 
         # Applying the sequence
-        while self.llh_names[operator_number] != "End" and self.agent.getNewState()[0] < max_sequence_length: 
+        while self.llh_names[operator_number] != "End" and self.agent.getNewState()[0] < self.max_sequence_length: 
             # Apply operator
             new_solution = eval("llh."+self.llh_names[operator_number]+"(self.data,solution)")
 

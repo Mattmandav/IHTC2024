@@ -17,11 +17,19 @@ if __name__ == "__main__":
         parser.add_argument('--input_folder',type=str,default="data/instances")
         parser.add_argument('--output_folder',type=str,default="data/solutions")
         parser.add_argument('--time_limit',type=float,default="60")
-        parser.add_argument('--time_tolerance',type=float,default="10")
+        parser.add_argument('--time_tolerance',type=float,default="5")
         parser.add_argument('--plot',action='store_true')
         parser.add_argument('--verbose',action='store_true')
         parser.add_argument('--selection',type=str,default="qlearner",choices=["qlearner","random"])
+        parser.add_argument('--sequence_length',type=int,default=0)
         args = parser.parse_args()
+
+        # Set the sequence length to be 1 if we are using random and 10 for the Q-Learner if not set explicitly
+        if args.sequence_length == 0:
+            if args.selection == "random":
+                args.sequence_length = 1
+            elif args.selection == "qlearner":
+                args.sequence_length = 10
 
         # Extracting filename
         filename = args.input_file[:-5]
@@ -48,7 +56,8 @@ if __name__ == "__main__":
                                time_limit = args.time_limit,
                                time_tolerance = args.time_tolerance,
                                verbose = args.verbose,
-                               heuristic_selection=args.selection)
+                               heuristic_selection=args.selection,
+                               sequence_length=args.sequence_length)
 
         # Saving solution
         with open("{}sol_{}.json".format(args.output_folder,filename), "w") as outfile: 
