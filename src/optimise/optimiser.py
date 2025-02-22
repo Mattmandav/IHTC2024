@@ -229,11 +229,6 @@ class Optimiser():
         t_end = time.time() + (self.time_limit - self.time_tolerance)
         while time.time() < t_end:
 
-            # Making copies of solution
-            # solution_pool = []
-            # for p in range(pool_size):
-            #     solution_pool.append(current_solution)
-
             # Applying moves
             with mp.Pool(self.cores) as p:
                 # Find which strategy selection is used
