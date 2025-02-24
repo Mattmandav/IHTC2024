@@ -210,7 +210,7 @@ def insert_patient_empty_room(data,solution):
     return solution
 
 # Insert a non-mandatory patient to an empty room
-def insert_patient_to_available_surgeon(data,solution):
+def  __insert_patient_to_available_surgeon(data,solution):
      """
      This operator takes a solution and tries to insert a single non-mandatory patient where there is a surgeon available
      Also finds a compatitble theater and room
