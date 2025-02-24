@@ -133,9 +133,8 @@ def __find_patient(data, patients, s, d, T_s, t, r, g, T_r):
 
 
 """
-Low-level moves
+PATIENT THEMED MOVES
 """
-
 
 # Insert a non-mandatory patient
 def insert_patient(data,solution):
@@ -293,7 +292,6 @@ def remove_patient_any(data,solution):
     return solution
 
 
-
 # Applies the two moves sequentially
 def remove_then_insert_patient(data,solution):
     solution = remove_patient(data,solution)
@@ -308,16 +306,87 @@ def remove_then_insert_patient_any(data,solution):
     return solution
 
 
-# Changes room for a patient
+# Change patient room
 def change_patient_room(data,solution):
     # Get all of the assigned patients
     assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
     if(len(assigned_patients) == 0):
         return solution
-
-    # Selecting a patient to move
+    # Selecting a patient to alter
     patient_to_move = rd.choices(assigned_patients)[0]
+    # Applying moves
+    solution = __change_patient_room(data,solution,patient_to_move)
+    return solution
 
+
+# Change patient admission day
+def change_patient_admission(data,solution):
+    # Get all of the assigned patients
+    assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+    if(len(assigned_patients) == 0):
+        return solution
+    # Selecting a patient to alter
+    patient_to_move = rd.choices(assigned_patients)[0]
+    # Applying moves
+    solution = __change_patient_admission(data,solution,patient_to_move)
+    return solution
+
+
+# Change patient theater
+def change_patient_theater(data,solution):
+    # Get all of the assigned patients
+    assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+    if(len(assigned_patients) == 0):
+        return solution
+    # Selecting a patient to alter
+    patient_to_move = rd.choices(assigned_patients)[0]
+    # Applying moves
+    solution = __change_patient_theater(data,solution,patient_to_move)
+    return solution
+
+# Compound movements
+def change_patient_compound1(data,solution):
+    # Get all of the assigned patients
+    assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+    if(len(assigned_patients) == 0):
+        return solution
+    # Selecting a patient to alter
+    patient_to_move = rd.choices(assigned_patients)[0]
+    # Applying moves
+    solution = __change_patient_room(data,solution,patient_to_move)
+    solution = __change_patient_admission(data,solution,patient_to_move)
+    solution = __change_patient_theater(data,solution,patient_to_move)
+    return solution
+
+
+def change_patient_compound2(data,solution):
+    # Get all of the assigned patients
+    assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+    if(len(assigned_patients) == 0):
+        return solution
+    # Selecting a patient to alter
+    patient_to_move = rd.choices(assigned_patients)[0]
+    # Applying moves
+    solution = __change_patient_room(data,solution,patient_to_move)
+    solution = __change_patient_admission(data,solution,patient_to_move)
+    return solution
+
+
+def change_patient_compound3(data,solution):
+    # Get all of the assigned patients
+    assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+    if(len(assigned_patients) == 0):
+        return solution
+    # Selecting a patient to alter
+    patient_to_move = rd.choices(assigned_patients)[0]
+    # Applying moves
+    solution = __change_patient_admission(data,solution,patient_to_move)
+    solution = __change_patient_theater(data,solution,patient_to_move)
+    return solution
+
+
+# Changes room for a patient
+def __change_patient_room(data,solution,patient_to_move):
     # Iterate through patients until find entry
     for p in solution["patients"]:
         if(p["id"] == patient_to_move):
@@ -333,15 +402,7 @@ def change_patient_room(data,solution):
     return solution
 
 
-def change_patient_admission(data,solution):
-    # Get all of the assigned patients
-    assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
-    if(len(assigned_patients) == 0):
-        return solution
-
-    # Selecting a patient to move
-    patient_to_move = rd.choices(assigned_patients)[0]
-
+def __change_patient_admission(data,solution,patient_to_move):
     # Iterate through patients until find entry
     for p in solution["patients"]:
         if(p["id"] == patient_to_move):
@@ -357,15 +418,7 @@ def change_patient_admission(data,solution):
     return solution
 
 
-def change_patient_theater(data,solution):
-    # Get all of the assigned patients
-    assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
-    if(len(assigned_patients) == 0):
-        return solution
-
-    # Selecting a patient to move
-    patient_to_move = rd.choices(assigned_patients)[0]
-
+def __change_patient_theater(data,solution,patient_to_move):
     # Iterate through patients until find entry
     for p in solution["patients"]:
         if(p["id"] == patient_to_move):
@@ -379,6 +432,11 @@ def change_patient_theater(data,solution):
     
     # Return modifed solution
     return solution
+
+
+"""
+NURSE THEMED MOVES
+"""
 
 
 def add_nurse_room(data,solution):
