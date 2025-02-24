@@ -127,6 +127,10 @@ class Optimiser():
 
         self.episode = 0
 
+        self.returns=np.zeros((self.max_sequence_length,number_of_low_level_heuristics+2,number_of_low_level_heuristics + 2))
+
+        self.mc_table=np.zeros((self.max_sequence_length,number_of_low_level_heuristics+2,number_of_low_level_heuristics + 2))
+
     """
     Solution checking
     """
@@ -235,7 +239,9 @@ class Optimiser():
                 if (self.heuristic_selection == 'random'):
                     new_solutions = p.map(self.random_solution_adjustment,solution_pool)
                 elif (self.heuristic_selection == 'qlearner'):
-                    new_solutions = p.map(self.qlearner_solution_adjustment,solution_pool)    
+                    new_solutions = p.map(self.qlearner_solution_adjustment,solution_pool)   
+                elif (self.heuristic_selection == 'mcrl'):
+                    new_solutions = p.map(self.mcrl_solution_adjustment,solution_pool) 
                 values = p.map(self.solution_score,new_solutions)
 
             # Append number of attempts
@@ -360,7 +366,7 @@ class Optimiser():
             new_score = self.solution_check(new_solution)["Cost"]
             
             #evaluate reward = move in score for qlearner
-            your_mums_reward = min(max(current_score - new_score,0),1)
+            your_mums_reward = current_score - new_score#min(max(,0),1)
 
             #Q-learning update
             self.agent.QLearningUpdate(action = operator_number, reward = your_mums_reward)
@@ -370,7 +376,7 @@ class Optimiser():
 
             current_score = new_score
 
-            self.episode += 1
+            #self.episode += 1
 
             explore_prob = self.min_explore + (self.max_explore - self.min_explore)*np.exp(-self.explore_decay_rate*self.episode)
 
@@ -391,6 +397,86 @@ class Optimiser():
 
             #find dynamic learning rate
             self.agent.setLearnRate(1/self.NVisits[self.agent.getCurrentState()+(operator_number,)])
+
+        # Return final solution
+        return new_solution
+
+
+    def mcrl_solution_adjustment(self,solution):
+        """
+        Takes self and solution as input, applies an operator and returns new solution.
+        """
+        
+        new_solution = solution
+        number_of_low_level_heuristics = len(self.llh_names)
+
+        #epsilon-Greedy policy for picking actions dervied from Q
+        #Magic number here - can be changed and switched to a better regime
+        # explore_prob = 0.1
+
+        self.episode += 1
+
+        # Update explore probability
+        explore_prob = self.min_explore + (self.max_explore - self.min_explore)*np.exp(-self.explore_decay_rate*self.episode)
+        
+        #creates empty sequence of operators (dummy first operator - will not be applied)
+        sequence_of_operators=[number_of_low_level_heuristics + 1]
+        
+        #e.g. decaying epslion-greedy, UCB (Book: warren B. Powell Approximate Dynamic Programming has some more in)
+        if np.random.uniform() < explore_prob:
+            # Explore Randomly
+            operator_number = self.llh_dict[rd.choices(self.llh_names[:-1])[0]]
+        else:
+            # Exploit best action
+            operator_number = np.argmax(self.mc_table[0, number_of_low_level_heuristics + 1,:])
+        sequence_of_operators.append(operator_number)
+
+        self.NVisits[0,sequence_of_operators[0],sequence_of_operators[1]] += 1
+
+        while self.llh_names[operator_number] != "End" and len(sequence_of_operators) < self.max_sequence_length:
+            #e.g. decaying epslion-greedy, UCB (Book: warren B. Powell Approximate Dynamic Programming has some more in)
+            if np.random.uniform() < explore_prob:
+                # Explore Randomly
+                operator_number = self.llh_dict[rd.choices(self.llh_names)[0]]
+            else:
+                # Exploit best action
+                operator_number = np.argmax(self.mc_table[len(sequence_of_operators),sequence_of_operators[-1],:])
+
+            sequence_of_operators.append(operator_number)
+
+        # Hold current score to evaluate reward later on
+        current_score = self.solution_check(solution)["Cost"]
+
+        # Applying the sequence
+        for operator in range(1,len(sequence_of_operators)):
+
+            operator_number=sequence_of_operators[operator]
+
+            # Apply operator
+            new_solution = eval("llh."+self.llh_names[operator_number]+"(self.data,solution)")
+
+            # Add the operator used to the new_solution
+            new_solution["operator"] = self.llh_names[operator_number]
+
+            #evaluate new solution score
+            new_score = self.solution_check(new_solution)["Cost"]
+            
+            #evaluate reward = move in score for qlearner
+            your_mums_reward = current_score - new_score#min(,1)max(,0)
+
+            # update returns
+            for i in range(operator):
+                self.returns[i,sequence_of_operators[i],sequence_of_operators[i+1]]+=your_mums_reward
+
+            current_score = new_score
+            
+            self.NVisits[operator-1,sequence_of_operators[operator-1],operator_number] += 1
+
+        #Monte Carlo RL update
+        for operator in range(len(sequence_of_operators)-1):
+            triple=(operator, sequence_of_operators[operator],sequence_of_operators[operator+1])
+
+            self.mc_table[triple]=self.returns[triple]/self.NVisits[triple]
 
         # Return final solution
         return new_solution

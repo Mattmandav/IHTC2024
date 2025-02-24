@@ -20,7 +20,7 @@ if __name__ == "__main__":
         parser.add_argument('--time_tolerance',type=float,default="5")
         parser.add_argument('--plot',action='store_true')
         parser.add_argument('--verbose',action='store_true')
-        parser.add_argument('--selection',type=str,default="qlearner",choices=["qlearner","random"])
+        parser.add_argument('--selection',type=str,default="qlearner",choices=["qlearner","random","mcrl"])
         parser.add_argument('--sequence_length',type=int,default=0)
         args = parser.parse_args()
 
@@ -29,7 +29,9 @@ if __name__ == "__main__":
             if args.selection == "random":
                 args.sequence_length = 1
             elif args.selection == "qlearner":
-                args.sequence_length = 10
+                args.sequence_length = 4
+            elif args.selection == "mcrl":
+                args.sequence_length = 4
 
         # Extracting filename
         filename = args.input_file[:-5]
