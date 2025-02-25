@@ -11,6 +11,7 @@ import src.optimise.heuristics as llh
 import src.optimise.greedy as grd
 from src.data.instance import Data
 from src.policies import qlearner
+from src.policies import acceptance
 
 # Main optimisation function
 def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verbose = False, heuristic_selection = "random", sequence_length=1):
@@ -446,6 +447,7 @@ class Optimiser():
 
         # Hold current score to evaluate reward later on
         current_score = self.solution_check(solution)["Cost"]
+        original_score = current_score
 
         # Applying the sequence
         for operator in range(1,len(sequence_of_operators)):
@@ -479,4 +481,5 @@ class Optimiser():
             self.mc_table[triple]=self.returns[triple]/self.NVisits[triple]
 
         # Return final solution
+        if acceptance.simulated_annealing(current_score,original_score,)
         return new_solution
