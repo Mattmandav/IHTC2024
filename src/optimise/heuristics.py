@@ -62,53 +62,57 @@ def __find_surgeon(data, solution):
     """
     surgeons = rd.sample(data.data['surgeons'],len(data.data['surgeons']))
     days = rd.sample(data.all_days,len(data.all_days))
+    surgeon = surgeons[0]['id']
+    day = 0
+    T_s = 0
     for s in surgeons:
         for d in days:
-            T_s = solution['surgeon_allocation'][str((d,s['id']))] # remainin time
-            if T_s>0:
-                s = s['id']
+            time = solution['surgeon_allocation'][str((d,s['id']))] # remainin time
+            if time>0:
+                surgeon = s['id']
+                day = d
+                T_s = time
                 break
 
-    return s, d, T_s
+    return surgeon, day, T_s
 
 def __find_theater(data, solution, d, T_s):
     """
     Find an available theater for a specific day (d) for a given length of time (T_s) - return the theater id (t)
     """
     theaters = rd.sample(data.data['operating_theaters'],len(data.data['operating_theaters']))
+    theater = theaters[0]['id']
     for t in theaters:
         if solution['theater_allocation'][str((d,t['id']))]>=T_s:
-            t = t['id']
+            theater = t['id']
             break
 
-    return t
+    return theater
 
 def __find_room(data, solution, d):
     """
     Find a room which is availabe on day (d), return room id (r), gender (g), how long its avail for (T_r)
     """
     rooms = rd.sample(data.data['rooms'],len(data.data['rooms']))
+    room = rooms[0]
+    gender = rd.choices(['A','B'])
+    days_avail = [d]
     for r in rooms:
         # is this room avail on this day
         T_r = min(1,r['capacity'] - len(solution["room_allocation"][str((d,r["id"]))]))
         if T_r>0:
+            # choose this room
+            room = r
             # what is current gender
             if len(solution["room_allocation"][str((d,r["id"]))])>0:
-                g = solution["room_allocation"][str((d,r["id"]))][0][1]
+                gender = solution["room_allocation"][str((d,r["id"]))][0][1]
             else:
-                g = '-'
-
-#            print('day is: ' + str(d))
-#            print('gender on this day: ' + str(g))
+                gender = '-'
             # days left in horizon
             remaining_days = [i for i in data.all_days if data.all_days[i]>d]
-
-#            print('remaining days: ' + str(len(remaining_days)))
-            
             # how long is it avail at this gender
             days_avail = [d]
             for dx in remaining_days:
-#                print('what about day ' + str(dx))
                 # is there capacity for another day?
                 more_days = min(1,r['capacity'] - len(solution["room_allocation"][str((dx,r["id"]))]))
                 if more_days>0:
@@ -117,22 +121,18 @@ def __find_room(data, solution, d):
                         gx = solution["room_allocation"][str((dx,r["id"]))][0][1]
                     else:
                         gx = '-'
-#                    print('gender on day ' + str(dx) + ' is ' + str(gx))
                     # is the gender on this day compatible
-#                    print('g is ' + str(g))
-#                    print('gx is ' + str(gx))
-                    if gx=='-' or gx==g:
-#                        print('yes')
+                    if gx=='-' or gx==gender:
                         days_avail.append(dx)
+                        if gx != '-' and gender == '-':
+                            gender = gx
                     else:
-#                        print('no')
                         break
                 else:
                     break
-
             break
 
-    return r['id'], g, days_avail
+    return room['id'], gender, days_avail
 
 def __find_patient(data, patients, s, d, T_s, t, r, g, T_r):
     """
@@ -255,8 +255,6 @@ def insert_patient_to_available_surgeon(data,solution):
     This operator takes a solution and tries to insert a single non-mandatory patient where there is a surgeon available
     Also finds a compatitble theater and room
     """
- #   print('-----------------starting move----------------')
-
     # Creating a list of unassigned patients
     non_assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] == "none"]
 
@@ -280,25 +278,9 @@ def insert_patient_to_available_surgeon(data,solution):
                 new_patients.append(patient_to_insert)
         solution["patients"] = new_patients
         solution = __update_allocations__(data,solution)
-        solution = __tracking(data, solution)
     else:
         solution = insert_patient(data,solution)
 
-#    print('solution----------')
-#    print(solution['patients'])
-
-#    print('--------resulting solution: ')
-#    for r in data.data["rooms"]:
-#        print(r['id'] + '-----------------')
-#        for o in data.data["occupants"]:
-#            if o["room_id"]==r['id']:
-#                print(o['id'] + ': ' + o['gender'] + ' admitted for ' + str(o['length_of_stay']) + ' days')
-#        for p in solution['patients']:
-#            if len(p)>2:
-#                if p['room']==r['id']:
-#                    print(p['id'] + ': ' + data.patient_dict[p['id']]['gender'] + ' admitted day ' + str(p['admission_day']) + ' for ' + str(data.patient_dict[p['id']]['length_of_stay']) + ' days')
-    
-    # Return updated solution
     return solution
 
 # Remove a non-mandatory patient
@@ -328,7 +310,6 @@ def remove_patient(data,solution):
     
     # Return modified solution
     return solution
-
 
 # Remove any patient
 def remove_patient_any(data,solution):
@@ -371,7 +352,6 @@ def remove_then_insert_patient_any(data,solution):
     solution = insert_patient(data,solution)
     solution = __update_allocations__(data,solution)    
     return solution
-
 
 # Change patient room
 def change_patient_room(data,solution):
@@ -588,31 +568,4 @@ def remove_nurse_room(data,solution):
     solution = __update_allocations__(data,solution)
     
     # Return modified solution
-    return solution
-
-def __tracking(data, solution):
-    solution["room_status"]=[]
-    solution["surgeon_status"]=[]
-    solution["theater_status"]=[]
-
-    for r in data.data["rooms"]:
-        out = r['id'] + '-' + str(r['capacity'])
-        for d in data.all_days:
-            used = len(solution["room_allocation"][str((d,r["id"]))])
-            avail = r['capacity']-used
-            out = out + '-' + str(avail)
-        solution['room_status'].append(out)
-
-    for s in data.data['surgeons']:
-        out = s['id']
-        for d in data.all_days:
-            out = out + '-' + str(solution['surgeon_allocation'][str((d,s['id']))])
-        solution['surgeon_status'].append(out)
-
-    for t in data.data['operating_theaters']:
-        out = t['id']
-        for d in data.all_days:
-            out = out + '-' + str(solution['theater_allocation'][str((d,t['id']))])
-        solution['theater_status'].append(out)
-
     return solution

@@ -208,7 +208,7 @@ class Optimiser():
     Hyper-heurisic improvemen
     """
     
-    def improvement_hyper_heuristic(self, solution, pool_size = 4):
+    def improvement_hyper_heuristic(self, solution, pool_size = 1):
         """
         The improvement heuristic applies 4 moves at the same time to the current solution.
         It will never accept an infeasible solution.
@@ -258,7 +258,7 @@ class Optimiser():
             if(temp_best_value < best_solution_value):
                 if(temp_best_violations > 0):
                    continue 
-                
+
                 best_solution = temp_best
                 best_solution_value = temp_best_value
                 # Dont quite get the point of this (?)
@@ -288,7 +288,7 @@ class Optimiser():
 
             if self.verbose:
                 print("Loops ran: {}, Accepted Operators: {}, Most used operators: {}, Most Recent operator: {}".format(self.hits['tried'],self.hits['successful'],max(set(self.hits['type']), key=self.hits['type'].count),self.hits['type'][-1]))
-                
+
         return best_solution, self.costs
 
     def random_solution_adjustment(self,solution):
