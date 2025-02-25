@@ -49,32 +49,10 @@ https://ihtc2024.github.io/
 ## Development team and contributions
 
 - Matthew Davison (Team leader)
-
-## Running the validator or the optimiser
-
-To run for an instance/solution pair use the following:
-
-```bash
-> ./IHTP_Validator.exe input_file.json sol_file.json
-```
-
-To run the optimiser for an instance use the following:
-
-```bash
-> python main.py input_file.json
-```
-
-To fix a seed (for example, 1234) for random generation then use the following:
-
-```bash
-> python main.py input_file.json --seed 1234
-```
-
-To specify an output folder (for example, solutions) then use the following:
-
-```bash
-> python main.py input_file.json --output_folder solutions
-```
+- Graham Burgess
+- Rebecca Hamm
+- Ben Lowery
+- Adam Page
 
 ## Data format
 

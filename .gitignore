@@ -2,6 +2,7 @@
 pyproject.toml
 .python-version
 uv.lock
+*.sh
 
 debug/*
 data/instances/*

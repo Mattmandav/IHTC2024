@@ -6,6 +6,7 @@ import numpy as np
 import random as rd
 import tempfile
 import pickle
+from ast import literal_eval
 
 import src.optimise.heuristics as llh
 import src.optimise.greedy as grd
@@ -36,6 +37,7 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verb
     solution = optimisation_object.optimise(method = "greedy")
     solution, costs = optimisation_object.improvement_hyper_heuristic(solution)
     print(optimisation_object.solution_check(solution))
+
     if verbose:
         pickle.dump(optimisation_object.hits, open("debug/hits.pkl", "wb"))
             
@@ -49,6 +51,7 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verb
 # Optimisation class
 class Optimiser():
     def __init__(self, raw_data, instance_file_name, time_limit = 60, time_tolerance = 5, verbose = False, heuristic_selection = "qlearner", sequence_length=1):
+
         # Get number of successful improvements over all iterations
         
         self.verbose = verbose
@@ -73,6 +76,8 @@ class Optimiser():
         self.llh_dict = {}
         for name in self.llh_names:
             self.llh_dict[name] = len(self.llh_dict)
+
+        
 
         # Key values for optimiser
         self.cores = 4
@@ -239,12 +244,11 @@ class Optimiser():
         self.setStartTime(time.time())
         t_end = time.time() + (self.time_limit - self.time_tolerance)
         while time.time() < t_end:
-
             # Applying moves
             with mp.Pool(self.cores) as p:
                 # Find which strategy selection is used
                 if (self.heuristic_selection == 'random'):
-                    new_solutions = p.map(self.random_solution_adjustment,solution_pool)
+                    new_solutions = p.starmap(self.random_solution_adjustment,[(sol,rd.randint(1,100000)) for sol in solution_pool])
                 elif (self.heuristic_selection == 'qlearner'):
                     new_solutions = p.map(self.qlearner_solution_adjustment,solution_pool)   
                 elif (self.heuristic_selection == 'mcrl'):
@@ -267,10 +271,9 @@ class Optimiser():
             if(temp_best_value < best_solution_value):
                 if(temp_best_violations > 0):
                    continue 
-                
+
                 best_solution = temp_best
                 best_solution_value = temp_best_value
-
                 # Dont quite get the point of this (?)
                 # Assume its just collecting costs over time but why don't you just collect all this information from the start when running the intiial pool instead of at the end?
                 # Also since its for plotting, we'll only do this is the plotting option is chosen
@@ -286,8 +289,8 @@ class Optimiser():
                         solution_pool.append(new_solutions[i])
                         if self.verbose:
                             self.hits['successful'] += 1
-                            self.hits['type'].append(temp_best['operator'])
-                            self.hits['Cost Reduction'].append(current_solution_value - temp_best_value)
+                            self.hits['type'].append(new_solutions[i]['operator'])
+                            self.hits['Cost Reduction'].append(current_solution_value - values[i]["Cost"])
                             
                         current_solution = temp_best
                         current_solution_value = temp_best_value"""
@@ -298,15 +301,14 @@ class Optimiser():
                 previous_values.append(temp_best_value)
             if self.verbose:
                 print("Loops ran: {}, Accepted Operators: {}, Most used operators: {}, Most Recent operator: {}".format(self.hits['tried'],self.hits['successful'],max(set(self.hits['type']), key=self.hits['type'].count),self.hits['type'][-1]))
-                
-        # Return the best solution
+
         return best_solution, self.costs
 
-    def random_solution_adjustment(self,solution):
+    def random_solution_adjustment(self,solution,seed):
         """
         Takes self and solution as input, applies an operator and returns new solution.
         """
-
+        rd.seed(seed)
         # Select an operator from the llh package to use
         operator_names = rd.choices(self.llh_names,k=rd.randint(1,self.max_sequence_length))
         init_solution = solution
@@ -319,7 +321,7 @@ class Optimiser():
         new_solution['operator'] = str(operator_names)
         # Return final solution
         return new_solution
-
+    
     def qlearner_solution_adjustment(self,solution):
         """
         Takes self and solution as input, applies an operator and returns new solution.
@@ -407,7 +409,6 @@ class Optimiser():
 
         # Return final solution
         return new_solution
-
 
     def mcrl_solution_adjustment(self,solution):
         """

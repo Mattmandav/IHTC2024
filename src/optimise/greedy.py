@@ -165,7 +165,6 @@ def greedy_allocation(self,data):
         if(len(nurse_allocation[nurse_id]["assignments"]) > 0):
             solution["nurses"].append(nurse_allocation[nurse_id])
 
-
     return solution
     
 

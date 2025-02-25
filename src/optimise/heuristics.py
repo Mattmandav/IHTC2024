@@ -1,5 +1,5 @@
 """
-This module contains all of the low level heuristic moves.
+this module contains all of the low level heuristic moves.
 """
 
 import random as rd
@@ -27,22 +27,27 @@ def __update_allocations__(data,solution):
     for o in data.data["occupants"]:
         for i in range(o["length_of_stay"]):
             solution["room_allocation"][str((i,o["room_id"]))].append((o["id"],o["gender"],o["age_group"]))
-    
+
     # Adding patients
-    for p in solution["patients"]:
+    assigned_patients = [patient for patient in solution["patients"] if patient["admission_day"] != "none"]
+    for p in assigned_patients:
         patient_information = data.patient_dict[p["id"]]
         i0 = p["admission_day"]
         # Update room allocation
         for i in range(patient_information["length_of_stay"]):
-            solution["room_allocation"][str((i0+i,p["room_id"]))].append((p["id"],
-                                                                          patient_information["gender"],
-                                                                          patient_information["age_group"])
+            ix=i0+i
+            if ix in data.all_days:
+                solution["room_allocation"][str((i0+i,p["room"]))].append((p["id"],
+                                                                           patient_information["gender"],
+                                                                           patient_information["age_group"])
                                                                           )
+            else:
+                break
         # Update theater allocations
         solution["theater_allocation"][str((i0,t["id"]))] -= patient_information["surgery_duration"]
         # Update surgeon allocations
         solution["surgeon_allocation"][str((i0,patient_information["surgeon_id"]))] -= patient_information["surgery_duration"]
-    
+
     # Return solution
     return solution
 
@@ -52,55 +57,83 @@ Functions to help find a surgeon/room/theater for a non-mandatory patient
 
 def __find_surgeon(data, solution):
     """
-    Find an available surgeon - return the surgeon id (s), which day they are available (d) and for how long (T_s)
+    Find a (Random) available surgeon - return the surgeon id (s), which day they are available (d) and for how long (T_s)
+    
     """
-    for s in data.data['surgeons']:
-        for d in data.all_days:
-            T_s = solution['surgeon_allocation'][str((d,s['id']))] # remainin time
-            if T_s>0:
-                s = s['id']
+    surgeons = rd.sample(data.data['surgeons'],len(data.data['surgeons']))
+    days = rd.sample(data.all_days,len(data.all_days))
+    surgeon = surgeons[0]['id']
+    day = 0
+    T_s = 0
+    for s in surgeons:
+        for d in days:
+            time = solution['surgeon_allocation'][str((d,s['id']))] # remainin time
+            if time>0:
+                surgeon = s['id']
+                day = d
+                T_s = time
                 break
 
-    return s, d, T_s
+    return surgeon, day, T_s
 
 def __find_theater(data, solution, d, T_s):
     """
     Find an available theater for a specific day (d) for a given length of time (T_s) - return the theater id (t)
     """
-    for t in data.data['operating_theaters']:
+    theaters = rd.sample(data.data['operating_theaters'],len(data.data['operating_theaters']))
+    theater = theaters[0]['id']
+    for t in theaters:
         if solution['theater_allocation'][str((d,t['id']))]>=T_s:
-            t = t['id']
+            theater = t['id']
             break
 
-    return t
+    return theater
 
 def __find_room(data, solution, d):
     """
     Find a room which is availabe on day (d), return room id (r), gender (g), how long its avail for (T_r)
     """
-
-    for r in data.data["rooms"]:
+    rooms = rd.sample(data.data['rooms'],len(data.data['rooms']))
+    room = rooms[0]
+    gender = rd.choices(['A','B'])
+    days_avail = [d]
+    for r in rooms:
+        # is this room avail on this day
         T_r = min(1,r['capacity'] - len(solution["room_allocation"][str((d,r["id"]))]))
         if T_r>0:
-            # found room - how long is it available for:
+            # choose this room
+            room = r
+            # what is current gender
+            if len(solution["room_allocation"][str((d,r["id"]))])>0:
+                gender = solution["room_allocation"][str((d,r["id"]))][0][1]
+            else:
+                gender = '-'
+            # days left in horizon
             remaining_days = [i for i in data.all_days if data.all_days[i]>d]
+            # how long is it avail at this gender
+            days_avail = [d]
             for dx in remaining_days:
+                # is there capacity for another day?
                 more_days = min(1,r['capacity'] - len(solution["room_allocation"][str((dx,r["id"]))]))
                 if more_days>0:
-                    T_r+=more_days # this tracks how many days the room is avail for
+                    # what is gender on this day
+                    if len(solution["room_allocation"][str((dx,r["id"]))])>0:
+                        gx = solution["room_allocation"][str((dx,r["id"]))][0][1]
+                    else:
+                        gx = '-'
+                    # is the gender on this day compatible
+                    if gx=='-' or gx==gender:
+                        days_avail.append(dx)
+                        if gx != '-' and gender == '-':
+                            gender = gx
+                    else:
+                        break
                 else:
-                    break
-
-            # what is the gender
-            looking = True
-            for i in data.all_days:
-                if len(solution["room_allocation"][str((i,r["id"]))])>0:
-                    g = solution["room_allocation"][str((i,r["id"]))][0][1]
                     break
             break
 
-    return r['id'], g, T_r
-    
+    return room['id'], gender, days_avail
+
 def __find_patient(data, patients, s, d, T_s, t, r, g, T_r):
     """
     Find a patients who matches with the surgeon and room
@@ -112,30 +145,33 @@ def __find_patient(data, patients, s, d, T_s, t, r, g, T_r):
     g: gender of room
     T_r: how many days the room is avail for
     """
-    new_patient = patients[0]
-    for p in patients:
+    found = False
+    patient_shuffle = rd.sample(patients,len(patients))
+    for p in patient_shuffle:
         if data.patient_dict[p]['surgeon_id']==s:
             if d in data.patient_dict[p]['possible_admission_days']:
                 if data.patient_dict[p]['surgery_duration']<=T_s:
                     if t in data.patient_dict[p]['possible_theaters']:
                         if r in data.patient_dict[p]['possible_rooms']:
                             if data.patient_dict[p]['gender']==g:
-                                if data.patient_dict[p]['length_of_stay']<=T_r:
+                                if data.patient_dict[p]['length_of_stay']<=len(T_r) or T_r[-1]==data.all_days[-1]:
                                     new_patient = p
+                                    found = True
                                     break
 
-    patient_admission = {"id": p,
-                         "admission_day" : d,
-                         "room" : r,
-                         "operating_theater" : t}
+    if found:
+        patient_admission = {"id": p,
+                             "admission_day" : d,
+                             "room" : r,
+                             "operating_theater" : t}
+    else:
+        patient_admission = {}
 
-    return patient_admission
-
+    return patient_admission, found
 
 """
-Low-level moves
+PATIENT THEMED MOVES
 """
-
 
 # Insert a non-mandatory patient
 def insert_patient(data,solution):
@@ -168,6 +204,8 @@ def insert_patient(data,solution):
             new_patients.append(new_solution_entry)
     solution["patients"] = new_patients
 
+    solution = __update_allocations__(data,solution)
+    
     # Return updated solution
     return solution
 
@@ -206,39 +244,44 @@ def insert_patient_empty_room(data,solution):
         else:
             d+=1
 
+    solution = __update_allocations__(data,solution)
+            
     # Return updated solution
     return solution
 
 # Insert a non-mandatory patient to an empty room
-def  __insert_patient_to_available_surgeon(data,solution):
-     """
-     This operator takes a solution and tries to insert a single non-mandatory patient where there is a surgeon available
-     Also finds a compatitble theater and room
-     """
-     # Creating a list of unassigned patients
-     non_assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] == "none"]
+def insert_patient_to_available_surgeon(data,solution):
+    """
+    This operator takes a solution and tries to insert a single non-mandatory patient where there is a surgeon available
+    Also finds a compatitble theater and room
+    """
+    # Creating a list of unassigned patients
+    non_assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] == "none"]
 
-     # If cannot remove patient then return
-     if(len(non_assigned_patients) == 0):
-         return solution
+    # If cannot remove patient then return
+    if(len(non_assigned_patients) == 0):
+        return solution
 
-     # Find surgeon and room
-     s, d, T_s = __find_surgeon(data, solution)
-     t = __find_theater(data, solution, d, T_s)
-     r, g, T_r = __find_room(data, solution, d)
-     patient_to_insert = __find_patient(data, non_assigned_patients, s, d, T_s, t, r, g, T_r)
+    # Find surgeon and room
+    s, d, T_s = __find_surgeon(data, solution)
+    t = __find_theater(data, solution, d, T_s)
+    r, g, T_r = __find_room(data, solution, d)
+    patient_to_insert, found = __find_patient(data, non_assigned_patients, s, d, T_s, t, r, g, T_r)
 
-     # Creating new solution
-     new_patients = []
-     for current_patient in solution["patients"]:
-         if(current_patient["id"] != patient_to_insert['id']):
-             new_patients.append(current_patient)
-         else:
-             new_patients.append(patient_to_insert)
-     solution["patients"] = new_patients
+    # Creating new solution
+    if found:
+        new_patients = []
+        for current_patient in solution["patients"]:
+            if(current_patient["id"] != patient_to_insert['id']):
+                new_patients.append(current_patient)
+            else:
+                new_patients.append(patient_to_insert)
+        solution["patients"] = new_patients
+        solution = __update_allocations__(data,solution)
+    else:
+        solution = insert_patient(data,solution)
 
-     # Return updated solution
-     return solution
+    return solution
 
 # Remove a non-mandatory patient
 def remove_patient(data,solution):
@@ -263,9 +306,10 @@ def remove_patient(data,solution):
             new_patients.append(current_patient)
     solution["patients"] = new_patients
 
+    solution = __update_allocations__(data,solution)
+    
     # Return modified solution
     return solution
-
 
 # Remove any patient
 def remove_patient_any(data,solution):
@@ -289,15 +333,16 @@ def remove_patient_any(data,solution):
             new_patients.append(current_patient)
     solution["patients"] = new_patients
 
+    solution = __update_allocations__(data,solution)
+    
     # Return modified solution
     return solution
-
-
 
 # Applies the two moves sequentially
 def remove_then_insert_patient(data,solution):
     solution = remove_patient(data,solution)
     solution = insert_patient(data,solution)
+    solution = __update_allocations__(data,solution)
     return solution
 
 
@@ -305,19 +350,90 @@ def remove_then_insert_patient(data,solution):
 def remove_then_insert_patient_any(data,solution):
     solution = remove_patient_any(data,solution)
     solution = insert_patient(data,solution)
+    solution = __update_allocations__(data,solution)    
     return solution
 
-
-# Changes room for a patient
+# Change patient room
 def change_patient_room(data,solution):
     # Get all of the assigned patients
     assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
     if(len(assigned_patients) == 0):
         return solution
-
-    # Selecting a patient to move
+    # Selecting a patient to alter
     patient_to_move = rd.choices(assigned_patients)[0]
+    # Applying moves
+    solution = __change_patient_room(data,solution,patient_to_move)
+    return solution
 
+
+# Change patient admission day
+def change_patient_admission(data,solution):
+    # Get all of the assigned patients
+    assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+    if(len(assigned_patients) == 0):
+        return solution
+    # Selecting a patient to alter
+    patient_to_move = rd.choices(assigned_patients)[0]
+    # Applying moves
+    solution = __change_patient_admission(data,solution,patient_to_move)
+    return solution
+
+
+# Change patient theater
+def change_patient_theater(data,solution):
+    # Get all of the assigned patients
+    assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+    if(len(assigned_patients) == 0):
+        return solution
+    # Selecting a patient to alter
+    patient_to_move = rd.choices(assigned_patients)[0]
+    # Applying moves
+    solution = __change_patient_theater(data,solution,patient_to_move)
+    return solution
+
+# Compound movements
+def change_patient_compound1(data,solution):
+    # Get all of the assigned patients
+    assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+    if(len(assigned_patients) == 0):
+        return solution
+    # Selecting a patient to alter
+    patient_to_move = rd.choices(assigned_patients)[0]
+    # Applying moves
+    solution = __change_patient_room(data,solution,patient_to_move)
+    solution = __change_patient_admission(data,solution,patient_to_move)
+    solution = __change_patient_theater(data,solution,patient_to_move)
+    return solution
+
+
+def change_patient_compound2(data,solution):
+    # Get all of the assigned patients
+    assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+    if(len(assigned_patients) == 0):
+        return solution
+    # Selecting a patient to alter
+    patient_to_move = rd.choices(assigned_patients)[0]
+    # Applying moves
+    solution = __change_patient_room(data,solution,patient_to_move)
+    solution = __change_patient_admission(data,solution,patient_to_move)
+    return solution
+
+
+def change_patient_compound3(data,solution):
+    # Get all of the assigned patients
+    assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
+    if(len(assigned_patients) == 0):
+        return solution
+    # Selecting a patient to alter
+    patient_to_move = rd.choices(assigned_patients)[0]
+    # Applying moves
+    solution = __change_patient_admission(data,solution,patient_to_move)
+    solution = __change_patient_theater(data,solution,patient_to_move)
+    return solution
+
+
+# Changes room for a patient
+def __change_patient_room(data,solution,patient_to_move):
     # Iterate through patients until find entry
     for p in solution["patients"]:
         if(p["id"] == patient_to_move):
@@ -328,20 +444,14 @@ def change_patient_room(data,solution):
                 new_room = rd.choices(room_options)[0]
                 p["room"] = new_room
             break
-    
+
+    solution = __update_allocations__(data,solution)
+        
     # Return modifed solution
     return solution
 
 
-def change_patient_admission(data,solution):
-    # Get all of the assigned patients
-    assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
-    if(len(assigned_patients) == 0):
-        return solution
-
-    # Selecting a patient to move
-    patient_to_move = rd.choices(assigned_patients)[0]
-
+def __change_patient_admission(data,solution,patient_to_move):
     # Iterate through patients until find entry
     for p in solution["patients"]:
         if(p["id"] == patient_to_move):
@@ -352,20 +462,14 @@ def change_patient_admission(data,solution):
                 new_day = rd.choices(day_options)[0]
                 p["admission_day"] = new_day
             break
-    
+
+    solution = __update_allocations__(data,solution)
+        
     # Return modifed solution
     return solution
 
 
-def change_patient_theater(data,solution):
-    # Get all of the assigned patients
-    assigned_patients = [patient["id"] for patient in solution["patients"] if patient["admission_day"] != "none"]
-    if(len(assigned_patients) == 0):
-        return solution
-
-    # Selecting a patient to move
-    patient_to_move = rd.choices(assigned_patients)[0]
-
+def __change_patient_theater(data,solution,patient_to_move):
     # Iterate through patients until find entry
     for p in solution["patients"]:
         if(p["id"] == patient_to_move):
@@ -376,9 +480,16 @@ def change_patient_theater(data,solution):
                 new_theater = rd.choices(theater_options)[0]
                 p["operating_theater"] = new_theater
             break
-    
+
+    solution = __update_allocations__(data,solution)
+        
     # Return modifed solution
     return solution
+
+
+"""
+NURSE THEMED MOVES
+"""
 
 
 def add_nurse_room(data,solution):
@@ -416,6 +527,8 @@ def add_nurse_room(data,solution):
     # Updating the solution
     solution["nurses"] = new_nurse_assignments
 
+    solution = __update_allocations__(data,solution)
+    
     # Return modified solution
     return solution
 
@@ -451,6 +564,8 @@ def remove_nurse_room(data,solution):
 
     # Updating the solution
     solution["nurses"] = new_nurse_assignments
+
+    solution = __update_allocations__(data,solution)
     
     # Return modified solution
     return solution

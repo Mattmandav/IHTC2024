@@ -1,12 +1,9 @@
-# IHTC2024
+# IHTC2024 - TEAM NAME
 
-This document contains the name of the team, the particpants of the team and a description of the method used. Along with this document is our table of scores (column one with instance and column two with the score) and a .zip folder containing the solutions found for eah instance.
+This document contains the name of the team, the particpants of the team and a description of the method used.
 
-## TEAM NAME HERE
-
+## Team participants
 All participants of team-name are PhD students at the STOR-i Centre for Doctoral Training based at Lancaster University, UK.
-
-### Team participants
 
 - Matthew Davison (contact: m.davison2@lancaster.ac.uk)
 - Adam Page
@@ -14,22 +11,47 @@ All participants of team-name are PhD students at the STOR-i Centre for Doctoral
 - Graham Burgess
 - Rebecca Hamm
 
-## Method description
+# Method 
 
-The method can be broken down into 
+## Overview
+We first generate an initial Feasible Solution using a greedy heuristic. With the remaining clock time, we run an iterative hyper-heuristic procedure consisting of a move selection and move acceptance step. The move portion is parellelised, allowing for up to 4 different move evaluations for each iteration step. The algorithm is described more formally below. 
 
-1. Greedy solution generation
-2. Moves that augment the solution
-3. Q-learning move selection
-4. Solution evaluation and tracing
-5. Simulated annealing move acceptance
+[INSERT LATEX ALGORITHM OR FLOWCHART?]
 
-### Greedy solution generation
+## Initial Feasible Solution
 
-### Moves
+## Move Selection
+In each parallel evaluation, a chain of low-level heuristics of length  ``[MOVE SELECTION LENGTH]`` is applied one after another. The choice of low-level heuristics is ```random/using a Qlearner/Monte Carlo```  and is selected from the below list.
 
-### Move selection
+### Low-level Heuristics
+**Move 1 -** Insert non-mandatory patient
 
-### Solution evaluation
+**Move 2 -** Insert a non-mandatory patient to an empty room
 
-### Move acceptance
+**Move 3 -** Insert a non-mandatory patient where a surgeon is available
+
+**Move 4 -** Remove a single non-mandatory patient
+
+**Move 5 -** Remove any patient
+
+**Move 6 -** Remove then insert a non-mandatory patient sequentially 
+
+**Move 7 -** Remove then insert any patient sequentially
+
+**Move 8 -** Change a patient room
+
+**Move 9 -** Change patient's admission day
+
+**Move 10 -** Change a patient's theatre
+
+**Move 11 -** Change a patient's room, admission, and theatre sequentially
+
+**Move 12 -** Change a patient's room and admission sequentially
+
+**Move 13 -** Change a patient's admission and theatre sequentially
+
+**Move 14 -** Add a nurse to a room
+
+**Move 15 -** Remove a nurse from a room
+## Move Acceptance
+Once the chain of moves and corresponding costs are recorded. We accept each parallel evaluation according to the following acceptance procedure ```Record to record/simulated annealing/option 3```. If the number of accepted moves is less than 4, then we populate remaining spots with the current best solution (which could be from the previous pool if no improving solutions were found).
