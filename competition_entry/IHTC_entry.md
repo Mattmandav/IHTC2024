@@ -24,19 +24,33 @@ We first generate an initial Feasible Solution using a greedy heuristic. With th
 
 ### Low-level Heuristics
 **Move 1 -**
+
 **Move 2 -** 
+
 **Move 3 -** 
+
 **Move 4 -** 
+
 **Move 5 -** 
+
 **Move 6 -** 
+
 **Move 7 -**
+
 **Move 8 -**
+
 **Move 9 -**
+
 **Move 10 -** 
+
 **Move 11 -** 
+
 **Move 12 -** 
+
 **Move 13 -**
+
 **Move 14 -**
+
 **Move 15 -**
 ## Move Acceptance
 
