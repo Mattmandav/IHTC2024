@@ -208,7 +208,7 @@ class Optimiser():
     Hyper-heurisic improvemen
     """
     
-    def improvement_hyper_heuristic(self, solution, pool_size = 1):
+    def improvement_hyper_heuristic(self, solution, pool_size = 4):
         """
         The improvement heuristic applies 4 moves at the same time to the current solution.
         It will never accept an infeasible solution.
