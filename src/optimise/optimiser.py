@@ -77,6 +77,7 @@ class Optimiser():
         # Key values for optimiser
         self.cores = 4
         self.time_tolerance = time_tolerance
+        self.start_time = 0
 
         # Processing instance data
         self.raw_data = raw_data
@@ -135,6 +136,12 @@ class Optimiser():
     """
     Solution checking
     """
+     
+    def setStartTime(self,time):
+        self.start_time=time
+
+    def getStartTime(self):
+        return self.start_time
 
     def solution_check(self, solution):
         # Check solution
@@ -159,6 +166,8 @@ class Optimiser():
             # Get cost
             if("Total cost" in line):
                 cost = int(line.split()[-1])
+                if cost<0.5:
+                    print(solution["patients"])
         # Return violations and cost
         return {"Violations": violations, "Cost": cost, "Reasons": reasons}
 
@@ -179,7 +188,7 @@ class Optimiser():
                 
     def solution_score(self, solution):
         values = self.solution_check(solution)
-        values["Cost"] += 1000*values["Violations"]
+        values["Cost"] += 0*max(values["Violations"],0)
         return values
 
 
@@ -231,7 +240,8 @@ class Optimiser():
             solution_pool.append(current_solution)
         
         # Applying heuristic
-        t_end = time.time() + (self.time_limit - self.time_tolerance)
+        self.setStartTime(time.time())
+        t_end = self.start_time + (self.time_limit - self.time_tolerance)
         while time.time() < t_end:
 
             # Applying moves
@@ -243,7 +253,7 @@ class Optimiser():
                     new_solutions = p.map(self.qlearner_solution_adjustment,solution_pool)   
                 elif (self.heuristic_selection == 'mcrl'):
                     new_solutions = p.map(self.mcrl_solution_adjustment,solution_pool) 
-                values = p.map(self.solution_score,new_solutions)
+            values = [i[1] for i in new_solutions]#p.map(self.solution_score,new_solutions)
 
             # Append number of attempts
             if self.verbose:
@@ -273,8 +283,8 @@ class Optimiser():
                     self.solution_collect_costs(temp_best)
 
             # Deciding whether to accept new solution as current solution
-            solution_pool = []
-            for i in range(len(values)):
+            solution_pool = [i[0] for i in new_solutions]
+            """for i in range(len(values)):
                 if(temp_best_value < current_solution_value
                    or values[i]["Cost"] < (best_solution_value + 0.01*best_solution_value)):
                         solution_pool.append(new_solutions[i])
@@ -284,7 +294,7 @@ class Optimiser():
                             self.hits['Cost Reduction'].append(current_solution_value - temp_best_value)
                             
                         current_solution = temp_best
-                        current_solution_value = temp_best_value
+                        current_solution_value = temp_best_value"""
                 
             # Padding solutions
             while len(solution_pool)<pool_size:
@@ -304,15 +314,21 @@ class Optimiser():
         # Select an operator from the llh package to use
         operator_names = rd.choices(self.llh_names,k=rd.randint(1,self.max_sequence_length))
         init_solution = solution
+        original_values=self.solution_check(solution)
+        original_score = original_values["Cost"]
 
         for operator in operator_names:
             new_solution = eval("llh."+operator+"(self.data,init_solution)")
             init_solution = new_solution
-        
+        current_values = self.solution_score(new_solution)
+        current_score = current_values["Cost"]
         # Add the operator used
         new_solution['operator'] = str(operator_names)
         # Return final solution
-        return new_solution
+        if acceptance.improve_and_equal(current_score,original_score):#simulated_annealing(current_score,original_score,self.start_time,self.time_limit):
+            return new_solution
+        else:
+            return solution
 
     def qlearner_solution_adjustment(self,solution):
         """
@@ -350,7 +366,7 @@ class Optimiser():
         self.agent.setLearnRate(1/self.NVisits[self.agent.getCurrentState()+(operator_number,)])
 
         # Hold current score to evaluate reward later on
-        current_score = self.solution_check(solution)["Cost"]
+        current_score = self.solution_score(solution)["Cost"]
 
         # Applying the sequence
         while self.llh_names[operator_number] != "End" and self.agent.getNewState()[0] < self.max_sequence_length: 
@@ -364,7 +380,7 @@ class Optimiser():
             self.agent.setNewState((self.agent.getCurrentState()[0] + 1, operator_number))
 
             #evaluate new solution score
-            new_score = self.solution_check(new_solution)["Cost"]
+            new_score = self.solution_score(new_solution)["Cost"]
             
             #evaluate reward = move in score for qlearner
             your_mums_reward = current_score - new_score#min(max(,0),1)
@@ -446,7 +462,8 @@ class Optimiser():
             sequence_of_operators.append(operator_number)
 
         # Hold current score to evaluate reward later on
-        current_score = self.solution_check(solution)["Cost"]
+        current_values= self.solution_score(solution)
+        current_score= current_values["Cost"]
         original_score = current_score
 
         # Applying the sequence
@@ -461,7 +478,8 @@ class Optimiser():
             new_solution["operator"] = self.llh_names[operator_number]
 
             #evaluate new solution score
-            new_score = self.solution_check(new_solution)["Cost"]
+            new_values = self.solution_score(new_solution)
+            new_score = new_values["Cost"]
             
             #evaluate reward = move in score for qlearner
             your_mums_reward = current_score - new_score#min(,1)max(,0)
@@ -481,5 +499,7 @@ class Optimiser():
             self.mc_table[triple]=self.returns[triple]/self.NVisits[triple]
 
         # Return final solution
-        if acceptance.simulated_annealing(current_score,original_score,)
-        return new_solution
+        if acceptance.simulated_annealing(current_score,original_score,self.start_time,self.time_limit):
+            return (new_solution,new_values)
+        else:
+            return (solution,current_values)
