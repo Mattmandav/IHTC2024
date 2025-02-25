@@ -237,7 +237,7 @@ class Optimiser():
             with mp.Pool(self.cores) as p:
                 # Find which strategy selection is used
                 if (self.heuristic_selection == 'random'):
-                    new_solutions = p.map(self.random_solution_adjustment,solution_pool)
+                    new_solutions = p.starmap(self.random_solution_adjustment,[(sol,rd.randint(1,100000)) for sol in solution_pool])
                 elif (self.heuristic_selection == 'qlearner'):
                     new_solutions = p.map(self.qlearner_solution_adjustment,solution_pool)    
                 values = p.map(self.solution_score,new_solutions)
@@ -291,11 +291,11 @@ class Optimiser():
 
         return best_solution, self.costs
 
-    def random_solution_adjustment(self,solution):
+    def random_solution_adjustment(self,solution,seed):
         """
         Takes self and solution as input, applies an operator and returns new solution.
         """
-
+        rd.seed(seed)
         # Select an operator from the llh package to use
         operator_names = rd.choices(self.llh_names,k=rd.randint(1,self.max_sequence_length))
         init_solution = solution
