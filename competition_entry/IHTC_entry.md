@@ -1,6 +1,4 @@
-# IHTC2024 - TEAM NAME
-
-This document contains the name of the team, the particpants of the team and a description of the method used.
+# IHTC2024 - STOR-i Time(tabling)
 
 ## Team participants
 All participants of team-name are PhD students at the STOR-i Centre for Doctoral Training based at Lancaster University, UK.
@@ -11,7 +9,7 @@ All participants of team-name are PhD students at the STOR-i Centre for Doctoral
 - Graham Burgess
 - Rebecca Hamm
 
-# Method 
+# Method
 
 ## Overview
 We first generate an initial Feasible Solution using a greedy heuristic. With the remaining clock time, we run an iterative hyper-heuristic procedure consisting of a move selection and move acceptance step. The move portion is parellelised, allowing for up to 4 different move evaluations for each iteration step. The algorithm is described more formally below. 
