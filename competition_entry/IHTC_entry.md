@@ -21,6 +21,7 @@ We first generate an initial Feasible Solution using a greedy heuristic. With th
 ## Initial Feasible Solution
 
 ## Move Selection
+In each parallel evaluation, a chain of low-level heuristics of length  ``[MOVE SELECTION LENGTH]`` is applied one after another. The choice of low-level heuristics is ```random/using a Qlearner/Monte Carlo```  and is selected from the below list.
 
 ### Low-level Heuristics
 **Move 1 -** Insert non-mandatory patient
@@ -53,4 +54,4 @@ We first generate an initial Feasible Solution using a greedy heuristic. With th
 
 **Move 15 -** Remove a nurse from a room
 ## Move Acceptance
-
+Once the chain of moves and corresponding costs are recorded. We accept each parallel evaluation according to the following acceptance procedure ```Record to record/simulated annealing/option 3```. If the number of accepted moves is less than 4, then we populate remaining spots with the current best solution (which could be from the previous pool if no improving solutions were found).
