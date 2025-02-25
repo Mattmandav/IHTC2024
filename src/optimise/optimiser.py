@@ -228,7 +228,6 @@ class Optimiser():
         # Applying heuristic
         t_end = time.time() + (self.time_limit - self.time_tolerance)
         while time.time() < t_end:
-
             # Applying moves
             with mp.Pool(self.cores) as p:
                 # Find which strategy selection is used
@@ -257,7 +256,6 @@ class Optimiser():
                 
                 best_solution = temp_best
                 best_solution_value = temp_best_value
-
                 # Dont quite get the point of this (?)
                 # Assume its just collecting costs over time but why don't you just collect all this information from the start when running the intiial pool instead of at the end?
                 # Also since its for plotting, we'll only do this is the plotting option is chosen
@@ -286,7 +284,6 @@ class Optimiser():
             if self.verbose:
                 print("Loops ran: {}, Accepted Operators: {}, Most used operators: {}, Most Recent operator: {}".format(self.hits['tried'],self.hits['successful'],max(set(self.hits['type']), key=self.hits['type'].count),self.hits['type'][-1]))
                 
-        # Return the best solution
         return best_solution, self.costs
 
     def random_solution_adjustment(self,solution):
