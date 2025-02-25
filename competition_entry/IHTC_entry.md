@@ -23,34 +23,34 @@ We first generate an initial Feasible Solution using a greedy heuristic. With th
 ## Move Selection
 
 ### Low-level Heuristics
-**Move 1 -**
+**Move 1 -** Insert non-mandatory patient
 
-**Move 2 -** 
+**Move 2 -** Insert a non-mandatory patient to an empty room
 
-**Move 3 -** 
+**Move 3 -** Insert a non-mandatory patient where a surgeon is available
 
-**Move 4 -** 
+**Move 4 -** Remove a single non-mandatory patient
 
-**Move 5 -** 
+**Move 5 -** Remove any patient
 
-**Move 6 -** 
+**Move 6 -** Remove then insert a non-mandatory patient sequentially 
 
-**Move 7 -**
+**Move 7 -** Remove then insert any patient sequentially
 
-**Move 8 -**
+**Move 8 -** Change a patient room
 
-**Move 9 -**
+**Move 9 -** Change patient's admission day
 
-**Move 10 -** 
+**Move 10 -** Change a patient's theatre
 
-**Move 11 -** 
+**Move 11 -** Change a patient's room, admission, and theatre sequentially
 
-**Move 12 -** 
+**Move 12 -** Change a patient's room and admission sequentially
 
-**Move 13 -**
+**Move 13 -** Change a patient's admission and theatre sequentially
 
-**Move 14 -**
+**Move 14 -** Add a nurse to a room
 
-**Move 15 -**
+**Move 15 -** Remove a nurse from a room
 ## Move Acceptance
 
