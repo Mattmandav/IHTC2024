@@ -16,7 +16,7 @@
       "id": "p03",
       "admission_day": 2,
       "room": "r1",
-      "operating_theater": "t1"
+      "operating_theater": "t0"
     },
     {
       "id": "p04",
@@ -24,9 +24,7 @@
     },
     {
       "id": "p05",
-      "admission_day": 12,
-      "room": "r3",
-      "operating_theater": "t1"
+      "admission_day": "none"
     },
     {
       "id": "p06",
@@ -35,22 +33,20 @@
     {
       "id": "p07",
       "admission_day": 8,
-      "room": "r2",
-      "operating_theater": "t1"
-    },
-    {
-      "id": "p08",
-      "admission_day": "none"
+      "room": "r1",
+      "operating_theater": "t0"
     },
     {
       "id": "p09",
-      "admission_day": 4,
+      "admission_day": 2,
       "room": "r2",
       "operating_theater": "t0"
     },
     {
-      "id": "p11",
-      "admission_day": "none"
+      "id": "p10",
+      "admission_day": 2,
+      "room": "r0",
+      "operating_theater": "t1"
     },
     {
       "id": "p13",
@@ -59,31 +55,27 @@
     {
       "id": "p14",
       "admission_day": 3,
-      "room": "r1",
+      "room": "r0",
       "operating_theater": "t0"
     },
     {
       "id": "p15",
-      "admission_day": "none"
+      "admission_day": 4,
+      "room": "r1",
+      "operating_theater": "t1"
     },
     {
       "id": "p16",
       "admission_day": "none"
     },
     {
-      "id": "p17",
-      "admission_day": 2,
-      "room": "r0",
-      "operating_theater": "t1"
-    },
-    {
       "id": "p18",
       "admission_day": "none"
     },
     {
-      "id": "p19",
-      "admission_day": 2,
-      "room": "r0",
+      "id": "p20",
+      "admission_day": 3,
+      "room": "r3",
       "operating_theater": "t1"
     },
     {
@@ -91,34 +83,28 @@
       "admission_day": "none"
     },
     {
-      "id": "p22",
-      "admission_day": 8,
-      "room": "r1",
+      "id": "p23",
+      "admission_day": 12,
+      "room": "r3",
       "operating_theater": "t1"
     },
     {
-      "id": "p23",
-      "admission_day": 9,
+      "id": "p24",
+      "admission_day": 12,
+      "room": "r0",
+      "operating_theater": "t1"
+    },
+    {
+      "id": "p25",
+      "admission_day": 8,
       "room": "r1",
       "operating_theater": "t0"
     },
     {
-      "id": "p24",
-      "admission_day": "none"
-    },
-    {
-      "id": "p25",
-      "admission_day": "none"
-    },
-    {
       "id": "p26",
-      "admission_day": "none"
-    },
-    {
-      "id": "p27",
-      "admission_day": 3,
-      "room": "r2",
-      "operating_theater": "t0"
+      "admission_day": 9,
+      "room": "r3",
+      "operating_theater": "t1"
     }
   ],
   "nurses": [
@@ -199,10 +185,10 @@
           "day": 9,
           "shift": "late",
           "rooms": [
-            "r0",
-            "r1",
+            "r3",
             "r2",
-            "r3"
+            "r1",
+            "r0"
           ]
         },
         {
@@ -219,10 +205,9 @@
           "day": 11,
           "shift": "late",
           "rooms": [
-            "r0",
-            "r1",
+            "r3",
             "r2",
-            "r3"
+            "r1"
           ]
         },
         {
@@ -275,8 +260,9 @@
           "shift": "night",
           "rooms": [
             "r0",
+            "r1",
             "r2",
-            "r1"
+            "r3"
           ]
         },
         {
@@ -308,11 +294,6 @@
             "r2",
             "r3"
           ]
-        },
-        {
-          "day": 0,
-          "shift": "late",
-          "rooms": []
         }
       ]
     },
@@ -373,10 +354,10 @@
           "day": 7,
           "shift": "late",
           "rooms": [
-            "r0",
-            "r1",
+            "r3",
             "r2",
-            "r3"
+            "r1",
+            "r0"
           ]
         },
         {
@@ -403,10 +384,10 @@
           "day": 11,
           "shift": "early",
           "rooms": [
-            "r0",
-            "r1",
+            "r3",
             "r2",
-            "r3"
+            "r1",
+            "r0"
           ]
         },
         {
@@ -417,13 +398,6 @@
             "r1",
             "r2",
             "r3"
-          ]
-        },
-        {
-          "day": 4,
-          "shift": "late",
-          "rooms": [
-            "r1"
           ]
         }
       ]
@@ -455,9 +429,10 @@
           "day": 5,
           "shift": "early",
           "rooms": [
-            "r2",
             "r0",
-            "r1"
+            "r1",
+            "r2",
+            "r3"
           ]
         },
         {
@@ -529,15 +504,9 @@
           "day": 9,
           "shift": "night",
           "rooms": [
-            "r3",
+            "r0",
             "r1",
-            "r2"
-          ]
-        },
-        {
-          "day": 11,
-          "shift": "night",
-          "rooms": [
+            "r2",
             "r3"
           ]
         }
@@ -552,7 +521,8 @@
           "rooms": [
             "r0",
             "r1",
-            "r2"
+            "r2",
+            "r3"
           ]
         },
         {
@@ -579,6 +549,20 @@
             "r2",
             "r3"
           ]
+        },
+        {
+          "day": 10,
+          "shift": "early",
+          "rooms": [
+            "r1"
+          ]
+        },
+        {
+          "day": 5,
+          "shift": "late",
+          "rooms": [
+            "r0"
+          ]
         }
       ]
     },
@@ -591,15 +575,14 @@
           "rooms": [
             "r0",
             "r1",
-            "r2",
             "r3"
           ]
         },
         {
-          "day": 9,
+          "day": 4,
           "shift": "early",
           "rooms": [
-            "r3"
+            "r1"
           ]
         }
       ]
@@ -644,43 +627,31 @@
     "(1, 'r3')": [],
     "(2, 'r0')": [
       [
-        "p19",
-        "B",
+        "p10",
+        "A",
         "elderly"
       ],
-      [
-        "p17",
-        "B",
-        "elderly"
-      ]
-    ],
-    "(2, 'r1')": [
       [
         "p03",
         "A",
         "adult"
       ]
     ],
-    "(2, 'r2')": [],
-    "(2, 'r3')": [],
-    "(3, 'r0')": [
-      [
-        "p19",
-        "B",
-        "elderly"
-      ],
+    "(2, 'r1')": [
       [
         "p17",
         "B",
         "elderly"
-      ],
-      [
-        "p27",
-        "B",
-        "elderly"
       ]
     ],
-    "(3, 'r1')": [
+    "(2, 'r2')": [],
+    "(2, 'r3')": [],
+    "(3, 'r0')": [
+      [
+        "p10",
+        "A",
+        "elderly"
+      ],
       [
         "p03",
         "A",
@@ -689,6 +660,18 @@
       [
         "p14",
         "A",
+        "elderly"
+      ]
+    ],
+    "(3, 'r1')": [
+      [
+        "p17",
+        "B",
+        "elderly"
+      ],
+      [
+        "p27",
+        "B",
         "elderly"
       ]
     ],
@@ -696,23 +679,37 @@
     "(3, 'r3')": [],
     "(4, 'r0')": [
       [
-        "p19",
-        "B",
+        "p10",
+        "A",
         "elderly"
       ],
       [
-        "p17",
-        "B",
-        "elderly"
+        "p03",
+        "A",
+        "adult"
       ],
       [
-        "p27",
-        "B",
+        "p14",
+        "A",
         "elderly"
       ]
     ],
     "(4, 'r1')": [
       [
+        "p17",
+        "B",
+        "elderly"
+      ],
+      [
+        "p27",
+        "B",
+        "elderly"
+      ]
+    ],
+    "(4, 'r2')": [],
+    "(4, 'r3')": [],
+    "(5, 'r0')": [
+      [
         "p03",
         "A",
         "adult"
@@ -723,15 +720,7 @@
         "elderly"
       ]
     ],
-    "(4, 'r2')": [
-      [
-        "p09",
-        "B",
-        "elderly"
-      ]
-    ],
-    "(4, 'r3')": [],
-    "(5, 'r0')": [
+    "(5, 'r1')": [
       [
         "p17",
         "B",
@@ -743,57 +732,27 @@
         "elderly"
       ]
     ],
-    "(5, 'r1')": [
-      [
-        "p03",
-        "A",
-        "adult"
-      ],
+    "(5, 'r2')": [],
+    "(5, 'r3')": [],
+    "(6, 'r0')": [
       [
         "p14",
         "A",
         "elderly"
       ]
     ],
-    "(5, 'r2')": [
-      [
-        "p09",
-        "B",
-        "elderly"
-      ]
-    ],
-    "(5, 'r3')": [],
-    "(6, 'r0')": [
+    "(6, 'r1')": [
       [
         "p27",
         "B",
         "elderly"
       ]
     ],
-    "(6, 'r1')": [
-      [
-        "p14",
-        "A",
-        "elderly"
-      ]
-    ],
-    "(6, 'r2')": [
-      [
-        "p09",
-        "B",
-        "elderly"
-      ]
-    ],
+    "(6, 'r2')": [],
     "(6, 'r3')": [],
     "(7, 'r0')": [],
     "(7, 'r1')": [],
-    "(7, 'r2')": [
-      [
-        "p09",
-        "B",
-        "elderly"
-      ]
-    ],
+    "(7, 'r2')": [],
     "(7, 'r3')": [],
     "(8, 'r0')": [
       [
@@ -849,11 +808,11 @@
     "(0, 't1')": 480,
     "(1, 't0')": 600,
     "(1, 't1')": 720,
-    "(2, 't0')": 120,
+    "(2, 't0')": 180,
     "(2, 't1')": 600,
     "(3, 't0')": 240,
     "(3, 't1')": 600,
-    "(4, 't0')": 480,
+    "(4, 't0')": 720,
     "(4, 't1')": 720,
     "(5, 't0')": 0,
     "(5, 't1')": 480,
@@ -877,9 +836,9 @@
   "surgeon_allocation": {
     "(0, 's0')": 0,
     "(1, 's0')": 0,
-    "(2, 's0')": 120,
+    "(2, 's0')": 180,
     "(3, 's0')": 120,
-    "(4, 's0')": 240,
+    "(4, 's0')": 480,
     "(5, 's0')": 0,
     "(6, 's0')": 0,
     "(7, 's0')": 480,
@@ -890,5 +849,5 @@
     "(12, 's0')": 360,
     "(13, 's0')": 0
   },
-  "operator": "add_nurse_room"
+  "operator": "change_patient_theater"
 }
