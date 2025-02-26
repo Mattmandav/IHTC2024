@@ -95,7 +95,7 @@ def __find_room(data, solution, d):
     """
     rooms = rd.sample(data.data['rooms'],len(data.data['rooms']))
     room = rooms[0]
-    gender = rd.choices(['A','B'])
+    gender = rd.choices(['A','B'])[0]
     days_avail = [d]
     for r in rooms:
         # is this room avail on this day
@@ -131,7 +131,8 @@ def __find_room(data, solution, d):
                 else:
                     break
             break
-
+    if gender == '-':
+        gender = rd.choices(['A','B'])[0]
     return room['id'], gender, days_avail
 
 def __find_patient(data, patients, s, d, T_s, t, r, g, T_r):
