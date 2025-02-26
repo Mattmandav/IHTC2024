@@ -66,5 +66,7 @@ In each parallel evaluation, a chain of low-level heuristics of length  ``[MOVE 
 
 **Move 15 -** Remove a nurse from a room
 
+**Move 16 -** Remove a nurse from a room but add them to another
+
 ## Move Acceptance
 Once the chain of moves and corresponding costs are recorded. We accept each parallel evaluation according to the following acceptance procedure ```Record to record/simulated annealing/option 3```. If the number of accepted moves is less than 4, then we populate remaining spots with the current best solution (which could be from the previous pool if no improving solutions were found).
