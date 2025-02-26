@@ -1,6 +1,6 @@
 import time
 
-def greedy_allocation(self,data):
+def greedy_allocation(data, time_limit = 600, time_tolerance = 60):
     """
     PATIENT ASSIGNMENT FIRST
     Iterate through days, then iterate through patients:
@@ -34,10 +34,10 @@ def greedy_allocation(self,data):
     all_mandatory_patients = sorted(all_mandatory_patients, key=lambda x: (x[1],x[2]))
     all_mandatory_patients = [p[0] for p in all_mandatory_patients]
     
+    # Timing iteration of patient assignment
+    time_start = time.time()
+    
     while True:
-        # Timing iteration of patient assignment
-        time_start = time.time()
-
         # Preallocating solution
         solution = {"patients": [],
                     "nurses": [],
@@ -89,11 +89,11 @@ def greedy_allocation(self,data):
         # Loop again if not all patients are allocated
         if(len(not_allocated) == 0):
             break
+        if(time_limit-time_tolerance < time.time() - time_start):
+            break
         else:
             all_mandatory_patients = not_allocated + admitted_mandatory_patients
 
-    # Timing nurse addition and non-mandatory patients
-    time_start = time.time()
 
     # Iterating over non-mandatory patients
     all_non_mandatory_patients = [patient_id for patient_id in data.patient_dict if not data.patient_dict[patient_id]["mandatory"]]

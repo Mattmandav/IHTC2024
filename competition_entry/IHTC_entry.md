@@ -1,7 +1,7 @@
-# IHTC2024 - STOR-i Time(tabling)
+# IHTC2024 - Operation STOR-i Time(tabling)
 
 ## Team participants
-All participants of team-name are PhD students at the STOR-i Centre for Doctoral Training based at Lancaster University, UK.
+All participants of "Operation STOR-i Time(tabling)" are PhD students at the STOR-i Centre for Doctoral Training based at Lancaster University, UK.
 
 - Matthew Davison (contact: m.davison2@lancaster.ac.uk)
 - Adam Page
@@ -12,11 +12,12 @@ All participants of team-name are PhD students at the STOR-i Centre for Doctoral
 # Method
 
 ## Overview
-We first generate an initial Feasible Solution using a greedy heuristic. With the remaining clock time, we run an iterative hyper-heuristic procedure consisting of a move selection and move acceptance step. The move portion is parellelised, allowing for up to 4 different move evaluations for each iteration step. The algorithm is described more formally below. 
 
-[INSERT LATEX ALGORITHM OR FLOWCHART?]
+Our fully open source approach starts by attempting to generate a feasible initial solution using a greedy heuristic. With the remaining clock time, we run an iterative hyper-heuristic procedure consisting of a move selection and move acceptance step. The move portion is parallelised, allowing for up to 4 different move evaluations for each iteration step. The elements of the algorithm are described below.
 
 ## Initial Feasible Solution
+
+
 
 ## Move Selection
 In each parallel evaluation, a chain of low-level heuristics of length  ``[MOVE SELECTION LENGTH]`` is applied one after another. The choice of low-level heuristics is ```random/using a Qlearner/Monte Carlo```  and is selected from the below list.

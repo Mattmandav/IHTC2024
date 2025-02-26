@@ -33,14 +33,20 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verb
                                     heuristic_selection = heuristic_selection,
                                     sequence_length=sequence_length)
 
-    # Run an optimisation method
+    # Run an optimisation method for initial
     solution = optimisation_object.optimise(method = "greedy")
+    initial_costs = optimisation_object.solution_check(solution)
+    if(initial_costs["Violations"] > 0):
+        print(f"Main function unable to find feasible solution!")
+        print()
+        return solution, optimisation_object.costs
+
+    # Run improvement
     solution, costs = optimisation_object.improvement_hyper_heuristic(solution)
     print(optimisation_object.solution_check(solution))
 
     if verbose:
-        pickle.dump(optimisation_object.hits, open("debug/hits.pkl", "wb"))
-            
+        pickle.dump(optimisation_object.hits, open("debug/hits.pkl", "wb"))   
 
     # Reporting process
     print(f"Main function completed!")
@@ -203,7 +209,7 @@ class Optimiser():
         # Apply greedy heuristic
         elif(method == "greedy"):
             t0 = time.time()
-            solution = grd.greedy_allocation(self,self.data)
+            solution = grd.greedy_allocation(self.data)
             print("Greedy approach took {} seconds".format(time.time()-t0))
         # Method doesn't exist
         else:
