@@ -492,12 +492,37 @@ def __change_patient_theater(data,solution,patient_to_move):
 NURSE THEMED MOVES
 """
 
-
 def add_nurse_room(data,solution):
     # Calling from a list of all nurses and selecting one
     nurse_id = rd.choices(data.all_nurses)[0]
-    nurse = data.nurse_dict[nurse_id]
+    # Apply move
+    solution = __add_nurse_room(data,solution,nurse_id)
+    # Return modified solution
+    return solution
 
+
+def remove_nurse_room(data,solution):
+    # Calling from a list of all nurses and selecting one
+    nurse_id = rd.choices(data.all_nurses)[0]
+    # Apply move
+    solution = __remove_nurse_room(data,solution,nurse_id)
+    # Return modified solution
+    return solution
+
+
+def nurse_compound(data,solution):
+    # Calling from a list of all nurses and selecting one
+    nurse_id = rd.choices(data.all_nurses)[0]
+    # Apply move
+    solution = __remove_nurse_room(data,solution,nurse_id)
+    solution = __add_nurse_room(data,solution,nurse_id)
+    # Return modified solution
+    return solution
+
+
+def __add_nurse_room(data,solution,nurse_id):
+    nurse = data.nurse_dict[nurse_id]
+    
     # Selecting a shift and a room to add
     all_rooms = [room["id"] for room in data.data["rooms"]]
     shift = rd.choices(nurse["working_shifts"])[0]
@@ -534,10 +559,7 @@ def add_nurse_room(data,solution):
     return solution
 
 
-def remove_nurse_room(data,solution):
-    # Calling from a list of all nurses and selecting one
-    nurse_id = rd.choices(data.all_nurses)[0]
-
+def __remove_nurse_room(data,solution,nurse_id):
     # Updating the working shifts
     new_nurse_assignments = []
     for nurse_sol in solution["nurses"]:
