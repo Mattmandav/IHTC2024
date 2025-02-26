@@ -1,6 +1,6 @@
 import time
 
-def greedy_allocation(data, time_limit = 600, time_tolerance = 60):
+def greedy_allocation(data, time_limit = 60, time_tolerance = 5):
     """
     PATIENT ASSIGNMENT FIRST
     Iterate through days, then iterate through patients:
