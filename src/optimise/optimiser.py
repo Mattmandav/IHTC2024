@@ -13,6 +13,7 @@ import src.optimise.greedy as grd
 from src.data.instance import Data
 from src.policies import qlearner
 from src.policies import acceptance
+from src.utils.plotter import solution_summary
 
 # Main optimisation function
 def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verbose = False, heuristic_selection = "random", sequence_length=1):
@@ -308,6 +309,9 @@ class Optimiser():
             if self.verbose:
                 print("Loops ran: {}, Accepted Operators: {}, Most used operators: {}, Most Recent operator: {}".format(self.hits['tried'],self.hits['successful'],max(set(self.hits['type']), key=self.hits['type'].count),self.hits['type'][-1]))
 
+        if self.verbose:
+            summary = solution_summary(self.data, best_solution)
+                
         return best_solution, self.costs
 
     def random_solution_adjustment(self,solution,seed):

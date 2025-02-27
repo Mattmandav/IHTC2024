@@ -38,9 +38,9 @@ In each parallel evaluation, a chain of low-level heuristics of length  ``[MOVE 
 ### Low-level Heuristics
 **Move 1 -** Insert non-mandatory patient
 
-**Move 2 -** Insert a non-mandatory patient to an empty room
+**Move 2 -** Insert non-mandatory patient with least workload
 
-**Move 3 -** Insert a non-mandatory patient where a surgeon is available
+**Move 3 -** Insert a non-mandatory patient to available surgeon/theater/room
 
 **Move 4 -** Remove a single non-mandatory patient
 
