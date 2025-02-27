@@ -32,10 +32,9 @@ At the end of Step 3, the algorithm will check if the feasible solution generato
 
 ## Iterative improvement hyper-heuristic
 
-## Move Selection
-In each parallel evaluation, a chain of low-level heuristics of length  ``2`` is applied one after another. The choice of low-level heuristics uses a simple random approach and is selected from the below list.
+### Move Selection
+In each parallel evaluation, a low-level heuristic is applied to the solution. A simple random approach is used to select the low-level heuristic from the following list:
 
-### Low-level Heuristics
 **Move 1 -** Insert non-mandatory patient
 
 **Move 2 -** Insert a non-mandatory patient to an empty room
@@ -70,3 +69,7 @@ In each parallel evaluation, a chain of low-level heuristics of length  ``2`` is
 
 ## Move Acceptance
 Once the chain of moves and corresponding costs are recorded. We accept each parallel evaluation according to a simulated annealing based acceptance procedure. If the number of accepted moves is less than 4, then we populate remaining spots with the current best solution (which could be from the previous pool if no improving solutions were found).
+
+## Solution scores
+To control the stocasticity of our method as much as possible, the algorithm accepts a seed as input. However, some variation can still occur due to the parallelisation. To benefit the competition organisers, we have ran the algorithm 20 times for each instance to obtain a mean score and a standard deviation of these scores.
+
