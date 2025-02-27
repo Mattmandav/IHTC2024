@@ -1,8 +1,15 @@
-data/*
-test_solutions/*
-solutions/*
-bugs/*
-IHTP_Validator
+# Some uv stuff we don't want in the actual version
+pyproject.toml
+.python-version
+uv.lock
+*.sh
+
+debug/*
+data/instances/*
+data/solutions/*
+data/plots/*
+bin/IHTP_Validator
+bin/IHTP_Validator_no_file_input
 
 # Vscode
 .vscode/*

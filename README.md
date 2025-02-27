@@ -1,37 +1,58 @@
+#### Example Run
+```bash
+# Run using the random selection
+python main.py [INSTANCE NAME] --selection=random
+
+# Run default (QLearner) + verbose output
+python main.py [INSTANCE NAME] --verbose
+```
+
 # IHTC2024
 Development space for the IHTC 2024.
 
 https://ihtc2024.github.io/
 
+## Ideal Project Structure
+```bash
+.
+├── bin
+│   └── validator
+├── data
+│   ├── instances
+│   ├── plots
+│   └── solutions
+├── pyproject.toml
+├── README.md
+├── src
+│   ├── data
+│   │   ├── __init__.py
+│   │   └── instance_dataclass.py
+│   ├── __init__.py
+│   ├── optimise
+│   │   ├── __init__.py
+│   │   ├── greedy.py
+│   │   ├── heuristics.py
+│   │   └── optimiser.py
+│   ├── policies
+│   │   ├── acceptance.py
+│   │   ├── __init__.py
+│   │   └── qlearner.py
+│   └── utils
+│       ├── __init__.py
+│       └──  plotter.py
+└── tests
+    ├── bulk_main.py
+    ├── __init__.py
+    └── main.py
+```
+
 ## Development team and contributions
 
 - Matthew Davison (Team leader)
-
-## Running the validator or the optimiser
-
-To run for an instance/solution pair use the following:
-
-```bash
-> ./IHTP_Validator.exe input_file.json sol_file.json
-```
-
-To run the optimiser for an instance use the following:
-
-```bash
-> python main.py input_file.json
-```
-
-To fix a seed (for example, 1234) for random generation then use the following:
-
-```bash
-> python main.py input_file.json --seed 1234
-```
-
-To specify an output folder (for example, solutions) then use the following:
-
-```bash
-> python main.py input_file.json --output_folder solutions
-```
+- Graham Burgess
+- Rebecca Hamm
+- Ben Lowery
+- Adam Page
 
 ## Data format
 
