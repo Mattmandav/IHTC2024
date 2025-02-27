@@ -33,7 +33,7 @@ At the end of Step 3, the algorithm will check if the feasible solution generato
 ## Iterative improvement hyper-heuristic
 
 ## Move Selection
-In each parallel evaluation, a chain of low-level heuristics of length  ``[MOVE SELECTION LENGTH]`` is applied one after another. The choice of low-level heuristics is ```random/using a Qlearner/Monte Carlo```  and is selected from the below list.
+In each parallel evaluation, a chain of low-level heuristics of length  ``2`` is applied one after another. The choice of low-level heuristics uses a simple random approach and is selected from the below list.
 
 ### Low-level Heuristics
 **Move 1 -** Insert non-mandatory patient
