@@ -33,7 +33,7 @@ At the end of Step 3, the algorithm will check if the feasible solution generato
 ## Iterative improvement hyper-heuristic
 
 ### Move Selection
-In each parallel evaluation, a low-level heuristic is applied to the solution. A simple random approach is used to select the low-level heuristic from the following list:
+In each parallel evaluation, either a single low-level heuristic is applied to the solution or two low-level heuristics are applied sequentially to the solution. A simple random approach is used to select the low-level heuristic from the following list:
 
 **Move 1 -** Insert non-mandatory patient
 
@@ -68,8 +68,8 @@ In each parallel evaluation, a low-level heuristic is applied to the solution. A
 **Move 16 -** Remove a nurse from a room but add them to another
 
 ## Move Acceptance
-Once the chain of moves and corresponding costs are recorded. We accept each parallel evaluation according to a simulated annealing based acceptance procedure. If the number of accepted moves is less than 4, then we populate remaining spots with the current best solution (which could be from the previous pool if no improving solutions were found).
+Once the chain of moves and corresponding costs are recorded. We accept each parallel evaluation according to a simulated annealing based acceptance procedure. If the number of accepted moves is less than 4, then we populate remaining spots in the solution pool with copies of the current best solution (which could be from the previous pool if no improving solutions were found).
 
 ## Solution scores
-To control the stocasticity of our method as much as possible, the algorithm accepts a seed as input. However, some variation can still occur due to the parallelisation. To benefit the competition organisers, we have ran the algorithm 20 times for each instance to obtain a mean score and a standard deviation of these scores.
+To control the stocasticity of our method as much as possible, the algorithm accepts a seed as input. However, some variation can still occur due to the parallelisation. To benefit the competition organisers, we have ran the algorithm 20 times for each instance to obtain a mean score and a standard deviation of these scores. Our best solution scores and the instances provided in the .zip file are our official solution entries.
 
