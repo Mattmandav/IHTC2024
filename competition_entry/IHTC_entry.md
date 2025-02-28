@@ -71,5 +71,5 @@ In each parallel evaluation, a single low-level heuristic is applied to the solu
 Once the chain of moves and corresponding costs are recorded. We accept each parallel evaluation according to a simulated annealing based acceptance procedure. If the number of accepted moves is less than 4, then we populate remaining spots in the solution pool with copies of the current best solution (which could be from the previous pool if no improving solutions were found).
 
 ## Solution scores
-To control the stochasticity of our method as much as possible the algorithm accepts a seed as input. To benefit the competition organisers, we have ran the algorithm 20 times for each instance to obtain a mean score and a standard deviation of these scores. Our best solution scores and the instances provided in the .zip file are our official solution entries.
+To control the stochasticity of our method as much as possible the algorithm accepts a seed as input. To benefit the competition organisers, we have ran the algorithm 20 times for each instance to obtain a mean score and a standard deviation of these scores. Our best solution scores in the second column of the .csv and the corresponding solutions provided in the .zip file are our official solution entries.
 
