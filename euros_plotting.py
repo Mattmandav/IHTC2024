@@ -121,6 +121,7 @@ fig = px.histogram(
 fig.update_layout(yaxis_title="Average Value")
 fig.update_layout(title="Average penalty value against penalty type")
 fig.update_layout(showlegend=False)
+fig.write_image("data/plots/fig1.svg", width=1200, height=534, scale=2.0)
 fig.show()
 
 # Second plot
@@ -137,6 +138,7 @@ fig = px.histogram(
 )
 fig.update_layout(yaxis_title="Average Value")
 fig.update_layout(title="Average penalty value against penalty type")
+fig.write_image("data/plots/fig2.svg", width=1200, height=534, scale=2.0)
 fig.show()
 
 # Third plot (Trace plot of solution value for i27)
@@ -147,6 +149,7 @@ fig = create_plot(i27_dict)
 fig.update_traces(line=dict(width=5))
 fig.update_layout(yaxis_title="Penalty Value")
 fig.update_layout(title="Penalty value against iteration for instance i27")
+fig.write_image("data/plots/fig3.svg", width=1200, height=534, scale=2.0)
 fig.show()
 
 # Fourth plot
@@ -165,6 +168,7 @@ fig = px.histogram(
 )
 fig.update_layout(yaxis_title="Average Value")
 fig.update_layout(title="Average penalty value against penalty type")
+fig.write_image("data/plots/fig4.svg", width=1200, height=534, scale=2.0)
 fig.show()
 
 # Fifth plot
@@ -182,6 +186,7 @@ fig = px.histogram(
 )
 fig.update_layout(yaxis_title="Average Value")
 fig.update_layout(title="Average penalty value against penalty type")
+fig.write_image("data/plots/fig5.svg", width=1200, height=534, scale=2.0)
 fig.show()
 
 # Sixth plot
@@ -198,5 +203,6 @@ fig = px.histogram(
 )
 fig.update_layout(yaxis_title="Total Penalty")
 fig.update_layout(title="Total penalty value against instance")
+fig.write_image("data/plots/fig6.svg", width=1200, height=534, scale=2.0)
 fig.show()
 
