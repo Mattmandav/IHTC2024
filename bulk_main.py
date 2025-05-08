@@ -29,7 +29,10 @@ args = parser.parse_args()
 
 # Bulk checking
 def bulk_check():
-    solutions = sorted(os.listdir(solutions_folder))
+    solutions = sorted([
+        f for f in os.listdir(solutions_folder)
+        if os.path.isfile(os.path.join(solutions_folder, f))
+        ])
     print(solutions)
     for s in solutions:
         if("test_" in s):
@@ -69,7 +72,58 @@ def bulk_run():
                  '--input_folder', data_folder, 
                  '--output_folder', solutions_folder,
                 '--time_limit', '{}'.format(time_taken),
-                '--time_tolerance', '{}'.format(time_tolerance)]
+                '--time_tolerance', '{}'.format(time_tolerance),
+                '--selection', 'random',
+                '--acceptance', 'improve_only',
+                '--save_costs']
+                )
+        print()
+        subprocess.run(
+                ['python', 'main.py', 
+                 str(d),
+                 '--input_folder', data_folder, 
+                 '--output_folder', solutions_folder,
+                '--time_limit', '{}'.format(time_taken),
+                '--time_tolerance', '{}'.format(time_tolerance),
+                '--selection', 'random',
+                '--acceptance', 'r2r',
+                '--save_costs']
+                )
+        print()
+        subprocess.run(
+                ['python', 'main.py', 
+                 str(d),
+                 '--input_folder', data_folder, 
+                 '--output_folder', solutions_folder,
+                '--time_limit', '{}'.format(time_taken),
+                '--time_tolerance', '{}'.format(time_tolerance),
+                '--selection', 'random',
+                '--acceptance', 'sa',
+                '--save_costs']
+                )
+        print()
+        subprocess.run(
+                ['python', 'main.py', 
+                 str(d),
+                 '--input_folder', data_folder, 
+                 '--output_folder', solutions_folder,
+                '--time_limit', '{}'.format(time_taken),
+                '--time_tolerance', '{}'.format(time_tolerance),
+                '--selection', 'mcrl',
+                '--acceptance', 'sa',
+                '--save_costs']
+                )
+        print()
+        subprocess.run(
+                ['python', 'main.py', 
+                 str(d),
+                 '--input_folder', data_folder, 
+                 '--output_folder', solutions_folder,
+                '--time_limit', '{}'.format(time_taken),
+                '--time_tolerance', '{}'.format(time_tolerance),
+                '--selection', 'qlearner',
+                '--acceptance', 'sa',
+                '--save_costs']
                 )
         print()
     print()

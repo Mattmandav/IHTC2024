@@ -16,7 +16,14 @@ from src.policies import acceptance
 from src.utils.plotter import solution_summary
 
 # Main optimisation function
-def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verbose = False, heuristic_selection = "random", sequence_length=1):
+def main(input_file, 
+         seed = 982032024, 
+         time_limit = 60, 
+         time_tolerance = 5, 
+         verbose = False, 
+         heuristic_selection = "random", 
+         sequence_length=1,
+         acceptance_selection = "sa"):
 
     # Open and read the JSON file
     with open(input_file, 'r') as file:
@@ -32,7 +39,8 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verb
                                     time_tolerance = time_tolerance,
                                     verbose = verbose,
                                     heuristic_selection = heuristic_selection,
-                                    sequence_length=sequence_length)
+                                    sequence_length = sequence_length,
+                                    acceptance_selection = acceptance_selection)
 
     # Run an optimisation method for initial
     solution = optimisation_object.optimise(method = "greedy")
@@ -57,7 +65,15 @@ def main(input_file, seed = 982032024, time_limit = 60, time_tolerance = 5, verb
 
 # Optimisation class
 class Optimiser():
-    def __init__(self, raw_data, instance_file_name, time_limit = 60, time_tolerance = 5, verbose = False, heuristic_selection = "qlearner", sequence_length=1):
+    def __init__(self, 
+                 raw_data, 
+                 instance_file_name, 
+                 time_limit = 60, 
+                 time_tolerance = 5, 
+                 verbose = False, 
+                 heuristic_selection = "qlearner", 
+                 sequence_length = 1,
+                 acceptance_selection = "sa"):
 
         # Get number of successful improvements over all iterations
         
@@ -71,6 +87,7 @@ class Optimiser():
             self.hits = {'tried': 0, 'successful': 0, 'type': ['None'], 'Cost Reduction': [0]}
         
         self.heuristic_selection = heuristic_selection # Random or Qlearner
+        self.acceptance_selection = acceptance_selection # Improve only, r2r or SA
 
         self.instance_file_name = instance_file_name
         # Importing low level heuristics
@@ -284,23 +301,25 @@ class Optimiser():
                 # Dont quite get the point of this (?)
                 # Assume its just collecting costs over time but why don't you just collect all this information from the start when running the intiial pool instead of at the end?
                 # Also since its for plotting, we'll only do this is the plotting option is chosen
-                if self.verbose:
-                    # Save costs data
-                    self.solution_collect_costs(temp_best)
-            solution_pool,previous_values = acceptance.simulated_annealing(values,new_solutions,previous_values,self.start_time,self.time_limit)#bestrr(values,new_solutions,temp_best_value,previous_values,pool_size)
+                self.solution_collect_costs(temp_best)
+
             # Deciding whether to accept new solution as current solution
-            """solution_pool = []
-            for i in range(len(values)):
-                if(temp_best_value < current_solution_value
-                   or values[i]["Cost"] < (best_solution_value + 0.01*best_solution_value)):
-                        solution_pool.append(new_solutions[i])
-                        if self.verbose:
-                            self.hits['successful'] += 1
-                            self.hits['type'].append(new_solutions[i]['operator'])
-                            self.hits['Cost Reduction'].append(current_solution_value - values[i]["Cost"])
-                            
-                        current_solution = temp_best
-                        current_solution_value = temp_best_value"""
+            if(self.acceptance_selection == "improve_only"):
+                solution_pool, previous_values = acceptance.improve_only()
+            
+            elif(self.acceptance_selection == "r2r"):
+                solution_pool, previous_values = acceptance.bestrr(
+                    values,
+                    new_solutions,
+                    temp_best_value)
+            
+            else:
+                solution_pool, previous_values = acceptance.simulated_annealing(
+                    values,
+                    new_solutions,
+                    previous_values,
+                    self.start_time,
+                    self.time_limit)
                 
             # Padding solutions
             while len(solution_pool)<pool_size:
@@ -311,6 +330,9 @@ class Optimiser():
 
         if self.verbose:
             summary = solution_summary(self.data, best_solution)
+
+        # Records final solution value
+        self.solution_collect_costs(best_solution)
                 
         return best_solution, self.costs
 
