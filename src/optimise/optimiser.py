@@ -51,8 +51,12 @@ def main(input_file,
         return solution, optimisation_object.costs
 
     # Run improvement
-    solution, costs = optimisation_object.improvement_hyper_heuristic(solution)
-    print(optimisation_object.solution_check(solution))
+    if(heuristic_selection != "none"):
+        solution, costs = optimisation_object.improvement_hyper_heuristic(solution)
+        print(optimisation_object.solution_check(solution))
+    else:
+        optimisation_object.solution_collect_costs(solution)
+        costs = optimisation_object.costs
 
     if verbose:
         pickle.dump(optimisation_object.hits, open("debug/hits.pkl", "wb"))   
