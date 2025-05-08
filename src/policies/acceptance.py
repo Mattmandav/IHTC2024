@@ -1,6 +1,10 @@
 import math
 import time
 import random
+
+def improve_only():
+    return [], []
+
 def rr(values,new_solutions,temp_best_value,previous_values,pool_size):
 
     solution_pool = []
@@ -16,7 +20,8 @@ def rr(values,new_solutions,temp_best_value,previous_values,pool_size):
                     self.hits['Cost Reduction'].append(current_solution_value - temp_best_value)"""
                     
     return solution_pool , new_values
-def bestrr(values,new_solutions,temp_best_value,previous_values,pool_size):
+
+def bestrr(values,new_solutions,temp_best_value):
 
     solution_pool = []
     new_values = []
@@ -30,6 +35,7 @@ def bestrr(values,new_solutions,temp_best_value,previous_values,pool_size):
                     self.hits['Cost Reduction'].append(current_solution_value - temp_best_value)"""
                     
     return solution_pool , new_values
+
 def simulated_annealing(values,new_solutions,previous_values,start_time,time_limit):
     solution_pool = []
     new_values = []

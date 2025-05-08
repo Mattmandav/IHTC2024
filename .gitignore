@@ -5,6 +5,7 @@ uv.lock
 *.sh
 
 debug/*
+data/individual_costs/*
 data/instances/*
 data/solutions/*
 data/plots/*
