@@ -19,20 +19,24 @@ instances = ["i01","i02","i03","i04","i05","i06","i07","i08","i09","i10",
 # Initial dictionary
 scores_dict = {"Instance": ["i01","i02","i03","i04","i05","i06","i07","i08","i09","i10",
                             "i11","i12","i13","i14","i15","i16","i17","i18","i19","i20",
-                            "i21","i22","i23","i24","i25","i26","i27","i28","i29","i30"],
-               "Selection": ["Best"]*30,
-               "Acceptance": ["Best"]*30,
+                            "i21","i22","i23","i24","i25","i26","i27","i28","i29","i30"]*2,
+               "Selection": ["Best"]*30 + ["Our Best"]*30,
+               "Acceptance": ["Best"]*30 + ["Our Best"]*30,
                "Total": [3842,1264,10490,1884,12760,10671,5026,6291,6682,20820,
                          25938,12430,17328,9746,12486,10139,40535,37660,44587,29098,
-                         24703,47861,37550,33221,11517,64613,51828,75172,12475,37943],  
-               "RoomAgeMix": [0]*30,
-               "RoomSkillLevel": [0]*30,
-               "ContinuityOfCare": [0]*30,
-               "ExcessiveNurseWorkload": [0]*30,
-               "OpenOperatingTheater": [0]*30,
-               "SurgeonTransfer": [0]*30,
-               "PatientDelay": [0]*30,
-               "ElectiveUnscheduledPatients": [0]*30,}
+                         24703,47861,37550,33221,11517,64613,51828,75172,12475,37943,
+                         5217,2566,11535,4269,17839,11659,13230,14596,14455,32955,
+                         32479,18887,28879,19208,31820,21510,108385,54259,76216,44924,
+                         55600,99055,64186,46039,22901,137080,160605,93283,31205,62724,
+                         ],  
+               "RoomAgeMix": [0]*60,
+               "RoomSkillLevel": [0]*60,
+               "ContinuityOfCare": [0]*60,
+               "ExcessiveNurseWorkload": [0]*60,
+               "OpenOperatingTheater": [0]*60,
+               "SurgeonTransfer": [0]*60,
+               "PatientDelay": [0]*60,
+               "ElectiveUnscheduledPatients": [0]*60,}
 
 costs = [k for k in scores_dict if k not in ["Instance","Selection","Acceptance","Total"]]
 
@@ -75,6 +79,7 @@ for f in files:
 scores_dataframe = pd.DataFrame(scores_dict)
 
 configurations = {
+    ("Our Best","Our Best"): "Our Best",
     ("Best","Best"): "Best",
     ("None","None"): "Initial Solution",
     ("Random","Improving Only"): "Random with IO",
@@ -191,8 +196,8 @@ fig.show()
 
 # Sixth plot
 data1 = scores_dataframe_instance.loc[scores_dataframe_instance["Configuration"].isin([
-    "Random with SA",
     "Best",
+    "Our Best",
     ])]
 fig = px.histogram(
     data1,
@@ -204,5 +209,33 @@ fig = px.histogram(
 fig.update_layout(yaxis_title="Total Penalty")
 fig.update_layout(title="Total penalty value against instance")
 fig.write_image("data/plots/fig6.svg", width=1200, height=534, scale=2.0)
+fig.show()
+
+# Final plot
+final_scores = {"Team": ["t01","t02","t03","t04","t05","t06","t07","t08","t09","t10",
+                         "t11","t12","t13","t14","t15","t16","t17","t18","t19","t20",
+                         "t21","t22","t23","t24","t25","t26","t27","t28","t29","t30",
+                         "t31", "Us"],
+               "Average Penalty": [
+                   26627.96667, 25123.43333, 6698051.533, 13362494.13, 25382.36667, 24372.06667,	27748.9,	50014369.97,	26070.16667,	25092.43333,
+                   26274.76667,	27551.5,	25038.26667,	27252.06667,	16698767.3,	44729.5,	36870.13333,	30080.63333,	23358086.13,	30920.9,
+                   36224.96667,	25264.7,	42557.2,	25442.83333,	41963.26667,	23355296.1,	30856.06667,	28580.33333,	13361937.87,	24981.9,
+                   26996.8,	44585.53333,
+                   ],
+               "Type": [0,0,1,1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,1,0,0,1,0,0,2]
+}
+final_dataframe = pd.DataFrame(final_scores)
+fig = px.histogram(
+    final_dataframe,
+    x = "Team",
+    y = "Average Penalty",
+    color = "Type",
+)
+fig.update_layout(yaxis_title="Average Value")
+fig.update_layout(title="Average penalty value against team")
+fig.update_layout(showlegend=False)
+fig.update_layout(yaxis_range=[0,70000])
+fig.update_xaxes(categoryorder='array', categoryarray= final_dataframe["Team"])
+fig.write_image("data/plots/fig7.svg", width=1200, height=534, scale=2.0)
 fig.show()
 
