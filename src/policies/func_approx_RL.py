@@ -67,6 +67,9 @@ class ApproxAgent:
     
     def getCriticWeights(self):
         return self.__critic_weights
+    
+    def getNActions(self):
+        return self.__n_actions
 
     def stateFeatureVector(self,solution_costs):
 
@@ -80,15 +83,49 @@ class ApproxAgent:
         #               "PatientDelay": [],
         #               "ElectiveUnscheduledPatients": []}
 
+        #scaling features to be inbetween [-1,1]
+        #doing this by dividing by 200,000 as this was the close to the largest cost i could see (i27)
+        max_cost = 200000
         #features
-        feature1 = np.sum(solution_costs["RoomAgeMix"])
-        feature2 = np.sum(solution_costs["RoomSkillLevel"])
-        feature3 = np.sum(solution_costs["ContinuityOfCare"])
-        feature4 = np.sum(solution_costs["ExcessiveNurseWorkload"])
-        feature5 = np.sum(solution_costs["OpenOperatingTheater"])
-        feature6 = np.sum(solution_costs["SurgeonTransfer"])
-        feature7 = np.sum(solution_costs["PatientDelay"])
-        feature8 = np.sum(solution_costs["ElectiveUnscheduledPatients"])
+        try:
+            feature1 = ((solution_costs["RoomAgeMix"][-1]/max_cost)*2) -1
+        except:
+            feature1 = -1
+
+        try:
+            feature2 = ((solution_costs["RoomSkillLevel"][-1]/max_cost)*2) -1
+        except:
+            feature2 = -1
+
+        try:
+            feature3 = ((solution_costs["ContinuityOfCare"][-1]/max_cost)*2) -1
+        except:
+            feature3 = -1
+        
+        try:
+            feature4 = ((solution_costs["ExcessiveNurseWorkload"][-1]/max_cost)*2) -1
+        except:
+            feature4 = -1
+
+        try:
+            feature5 = ((solution_costs["OpenOperatingTheater"][-1]/max_cost)*2) -1
+        except:
+            feature5 = -1
+        
+        try:
+            feature6 = ((solution_costs["SurgeonTransfer"][-1]/max_cost)*2) -1
+        except:
+            feature6 = -1
+
+        try:
+            feature7 = ((solution_costs["PatientDelay"][-1]/max_cost)*2) -1
+        except:
+            feature7 = -1
+        
+        try:
+            feature8 = ((solution_costs["ElectiveUnscheduledPatients"][-1]/max_cost)*2) -1
+        except:
+            feature8 = -1
 
         #set up feature vector
         x = []
@@ -127,16 +164,51 @@ class ApproxAgent:
         #issue with actions, kind of want to put them in range of 0,1,2,...
         #but are actions arent really numeric in anyway
         #might need to do something along the lines of one-hot coding
-        #features
-        feature1 = np.sum(solution_costs["RoomAgeMix"])
-        feature2 = np.sum(solution_costs["RoomSkillLevel"])
-        feature3 = np.sum(solution_costs["ContinuityOfCare"])
-        feature4 = np.sum(solution_costs["ExcessiveNurseWorkload"])
-        feature5 = np.sum(solution_costs["OpenOperatingTheater"])
-        feature6 = np.sum(solution_costs["SurgeonTransfer"])
-        feature7 = np.sum(solution_costs["PatientDelay"])
-        feature8 = np.sum(solution_costs["ElectiveUnscheduledPatients"])
 
+        #scaling features to be inbetween [-1,1]
+        #doing this by dividing by 200,000 as this was the close to the largest cost i could see (i27)
+        max_cost = 200000
+        #features
+        try:
+            feature1 = ((solution_costs["RoomAgeMix"][-1]/max_cost)*2) -1
+        except:
+            feature1 = -1
+
+        try:
+            feature2 = ((solution_costs["RoomSkillLevel"][-1]/max_cost)*2) -1
+        except:
+            feature2 = -1
+
+        try:
+            feature3 = ((solution_costs["ContinuityOfCare"][-1]/max_cost)*2) -1
+        except:
+            feature3 = -1
+        
+        try:
+            feature4 = ((solution_costs["ExcessiveNurseWorkload"][-1]/max_cost)*2) -1
+        except:
+            feature4 = -1
+
+        try:
+            feature5 = ((solution_costs["OpenOperatingTheater"][-1]/max_cost)*2) -1
+        except:
+            feature5 = -1
+        
+        try:
+            feature6 = ((solution_costs["SurgeonTransfer"][-1]/max_cost)*2) -1
+        except:
+            feature6 = -1
+
+        try:
+            feature7 = ((solution_costs["PatientDelay"][-1]/max_cost)*2) -1
+        except:
+            feature7 = -1
+        
+        try:
+            feature8 = ((solution_costs["ElectiveUnscheduledPatients"][-1]/max_cost)*2) -1
+        except:
+            feature8 = -1
+            
         #set up feature vector
         x = []
         # I wholeheartedly apologise for this

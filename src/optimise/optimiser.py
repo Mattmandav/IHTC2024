@@ -168,12 +168,14 @@ class Optimiser():
 
         #FUNCTION APPROXIMATION RL ELEMENTS 
         #learn rate/stepsize for actor-critic
-        step_size = 0.01
         discount_factor = 1
         polynomial_order = 2
         n_features = len(self.costs)
+        #generic 10**-2 step size divided by length of feature vector
+        #used to avoid divergence of updates 
+        step_size = 0.01/((polynomial_order+1)**n_features)
         self.approx_agent = func_approx_RL.ApproxAgent(
-            n_features = None,
+            n_features = n_features,
             n_actions = number_of_low_level_heuristics,
             learn_rate = step_size,
             discount_factor = discount_factor,
@@ -182,6 +184,8 @@ class Optimiser():
             dimension = polynomial_order,
             big_i = 1
         )
+        #used for reward regularisation and comes from largest cost in i27
+        self.big_number = 200000
 
     """
     Solution checking
@@ -290,6 +294,7 @@ class Optimiser():
         self.setStartTime(time.time())
         t_end = time.time() + (self.time_limit - self.time_tolerance)
         while time.time() < t_end:
+            print(self.costs)
             # Applying moves
             with mp.Pool(self.cores) as p:
                 # Find which strategy selection is used
@@ -559,16 +564,20 @@ class Optimiser():
 
             #action selection
             operator_number = self.approx_agent.sampleFromPolicy(state = self.costs)
+            print(operator_number)
             
+            #if the actor chooses to end just select a random other action
+            while operator_number == self.approx_agent.getNActions():
+                operator_number = self.approx_agent.sampleFromPolicy(state = self.costs)
             # Hold current score to evaluate reward later on
             current_score = self.solution_score(solution)["Cost"]
-            current_costs = self.costs
+            current_costs = self.costs.copy()
 
             # Applying the sequence
             while self.llh_names[operator_number] != "End" and current_sequence_length < self.max_sequence_length: 
+                
                 # Apply operator
                 new_solution = eval("llh."+self.llh_names[operator_number]+"(self.data,solution)")
-                new_costs = self.costs
 
                 # Add the operator used to the new_solution
                 new_solution["operator"] = self.llh_names[operator_number]
@@ -578,12 +587,16 @@ class Optimiser():
 
                 #evaluate new solution score
                 new_score = self.solution_score(new_solution)["Cost"]
+                new_costs = self.costs.copy()
                 
                 #evaluate reward = move in score for qlearner
-                your_mums_reward = current_score - new_score#min(max(,0),1)
+                your_mams_reward = current_score - new_score#min(max(,0),1)
+
+                # regularised on [-1,1]
+                reg_reward = ((your_mams_reward/self.big_number)*2) - 1
 
                 #Evaluate TD error
-                self.approx_agent.evalTDError(reward = your_mums_reward,
+                self.approx_agent.evalTDError(reward = reg_reward,
                                             new_state = new_costs,
                                             curr_state = current_costs)
                 
@@ -598,10 +611,12 @@ class Optimiser():
 
                 #make new state/reward the current state/reward
                 current_score = new_score
-                current_costs = new_costs
+                current_costs = new_costs.copy()
 
                 #action selection
                 operator_number = self.approx_agent.sampleFromPolicy(state = current_costs)
+                print(self.approx_agent.getCriticWeights())
+                print(operator_number)
 
             # Return final solution
             return new_solution
