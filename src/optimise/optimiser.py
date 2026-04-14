@@ -294,7 +294,7 @@ class Optimiser():
         self.setStartTime(time.time())
         t_end = time.time() + (self.time_limit - self.time_tolerance)
         while time.time() < t_end:
-            print(self.costs)
+            # print(self.costs)
             # Applying moves
             with mp.Pool(self.cores) as p:
                 # Find which strategy selection is used
@@ -558,17 +558,17 @@ class Optimiser():
             Takes self and solution as input, applies an operator and returns new solution.
             """
             
-            new_solution = solution
+            new_solution = solution.copy()
             current_sequence_length = 0
             self.approx_agent.resetBigI(BigI = 1)
 
             #action selection
             operator_number = self.approx_agent.sampleFromPolicy(state = self.costs)
-            print(operator_number)
             
             #if the actor chooses to end just select a random other action
             while operator_number == self.approx_agent.getNActions():
                 operator_number = self.approx_agent.sampleFromPolicy(state = self.costs)
+
             # Hold current score to evaluate reward later on
             current_score = self.solution_score(solution)["Cost"]
             current_costs = self.costs.copy()
@@ -615,8 +615,6 @@ class Optimiser():
 
                 #action selection
                 operator_number = self.approx_agent.sampleFromPolicy(state = current_costs)
-                print(self.approx_agent.getCriticWeights())
-                print(operator_number)
 
             # Return final solution
             return new_solution

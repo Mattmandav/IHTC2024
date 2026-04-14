@@ -1,4 +1,5 @@
 import numpy as np
+from random import choices
 
 class ApproxAgent:
 
@@ -208,7 +209,7 @@ class ApproxAgent:
             feature8 = ((solution_costs["ElectiveUnscheduledPatients"][-1]/max_cost)*2) -1
         except:
             feature8 = -1
-            
+
         #set up feature vector
         x = []
         # I wholeheartedly apologise for this
@@ -250,9 +251,10 @@ class ApproxAgent:
         #sample from softmax distribution
         soft_max_numerator = np.exp([self.preferenceFunction(state,action) for action in range(self.__n_actions)])
         probs = soft_max_numerator/np.sum(soft_max_numerator)
-        action = np.random.choice(a  = range (self.__n_actions ),
-                                  size = 1,
-                                  p = probs)
+        action = choices(range(self.__n_actions),probs)
+        # action = np.random.choice(a  = np.arange(self.__n_actions ),
+        #                           size = 1,
+        #                           p = probs)
         return action[0]
 
     def evalTDError(self,reward,new_state,curr_state):
