@@ -13,6 +13,7 @@ import src.optimise.greedy as grd
 from src.data.instance import Data
 from src.policies import qlearner
 from src.policies import acceptance
+from src.policies import func_approx_RL
 from src.utils.plotter import solution_summary
 
 # Main optimisation function
@@ -99,7 +100,7 @@ class Optimiser():
                           callable(getattr(llh,name)) and
                           not name.startswith("__")
                           ]
-        if self.heuristic_selection == "qlearner":
+        if self.heuristic_selection == "qlearner" or self.heuristic_selection == "func_approx":
             self.llh_names = self.llh_names+["End"]
         self.llh_dict = {}
         for name in self.llh_names:
@@ -164,6 +165,23 @@ class Optimiser():
         self.returns=np.zeros((self.max_sequence_length,number_of_low_level_heuristics+2,number_of_low_level_heuristics + 2))
 
         self.mc_table=np.zeros((self.max_sequence_length,number_of_low_level_heuristics+2,number_of_low_level_heuristics + 2))
+
+        #FUNCTION APPROXIMATION RL ELEMENTS 
+        #learn rate/stepsize for actor-critic
+        step_size = 0.01
+        discount_factor = 1
+        polynomial_order = 2
+        n_features = len(self.costs)
+        self.approx_agent = func_approx_RL.ApproxAgent(
+            n_features = None,
+            n_actions = number_of_low_level_heuristics,
+            learn_rate = step_size,
+            discount_factor = discount_factor,
+            critic_weights = [0]*((polynomial_order+1)**n_features),
+            actor_weights = [0]*((polynomial_order+1)**n_features + (number_of_low_level_heuristics)),
+            dimension = polynomial_order,
+            big_i = 1
+        )
 
     """
     Solution checking
@@ -281,6 +299,8 @@ class Optimiser():
                     new_solutions = p.map(self.qlearner_solution_adjustment,solution_pool)   
                 elif (self.heuristic_selection == 'mcrl'):
                     new_solutions = p.map(self.mcrl_solution_adjustment,solution_pool) 
+                elif (self.heuristic_selection == 'func_approx'):
+                    new_solutions = p.map(self.func_approx_solution_adjustment,solution_pool) 
                 values = p.map(self.solution_score,new_solutions)
 
             # Append number of attempts
@@ -526,3 +546,62 @@ class Optimiser():
         # Return final solution
         
         return new_solution
+
+
+    def func_approx_solution_adjustment(self,solution):
+            """
+            Takes self and solution as input, applies an operator and returns new solution.
+            """
+            
+            new_solution = solution
+            current_sequence_length = 0
+            self.approx_agent.resetBigI(BigI = 1)
+
+            #action selection
+            operator_number = self.approx_agent.sampleFromPolicy(state = self.costs)
+            
+            # Hold current score to evaluate reward later on
+            current_score = self.solution_score(solution)["Cost"]
+            current_costs = self.costs
+
+            # Applying the sequence
+            while self.llh_names[operator_number] != "End" and current_sequence_length < self.max_sequence_length: 
+                # Apply operator
+                new_solution = eval("llh."+self.llh_names[operator_number]+"(self.data,solution)")
+                new_costs = self.costs
+
+                # Add the operator used to the new_solution
+                new_solution["operator"] = self.llh_names[operator_number]
+
+                #increase the current sequence length
+                current_sequence_length +=1
+
+                #evaluate new solution score
+                new_score = self.solution_score(new_solution)["Cost"]
+                
+                #evaluate reward = move in score for qlearner
+                your_mums_reward = current_score - new_score#min(max(,0),1)
+
+                #Evaluate TD error
+                self.approx_agent.evalTDError(reward = your_mums_reward,
+                                            new_state = new_costs,
+                                            curr_state = current_costs)
+                
+                #Critic weights update
+                self.approx_agent.criticUpdate(state = current_costs)
+                
+                #Actor weights updtae
+                self.approx_agent.actorUpdate(action = operator_number, state = current_costs)
+                
+                #update discounting
+                self.approx_agent.updateBigI()
+
+                #make new state/reward the current state/reward
+                current_score = new_score
+                current_costs = new_costs
+
+                #action selection
+                operator_number = self.approx_agent.sampleFromPolicy(state = current_costs)
+
+            # Return final solution
+            return new_solution
