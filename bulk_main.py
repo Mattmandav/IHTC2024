@@ -15,8 +15,8 @@ Should take a maximum of 400 minutes (7 hours) to re-run all instances.
 """
 
 # Parameters
-data_folder = "data/instances"
-solutions_folder = "data/solutions"
+data_folder = "data"
+solutions_folder = "solutions"
 time_taken = 600
 time_tolerance = 60
 
@@ -73,9 +73,9 @@ def bulk_run():
                  '--output_folder', solutions_folder,
                 '--time_limit', '{}'.format(time_taken),
                 '--time_tolerance', '{}'.format(time_tolerance),
-                '--selection', 'none',
-                '--acceptance', 'none',
-                '--save_costs']
+                '--selection', 'qlearner',
+                '--acceptance', 'improve_only',
+                '--save_costs'] 
                 )
         print()
     print()

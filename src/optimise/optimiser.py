@@ -173,7 +173,7 @@ class Optimiser():
         n_features = len(self.costs)
         #generic 10**-2 step size divided by length of feature vector
         #used to avoid divergence of updates 
-        step_size = 0.01/((polynomial_order+1)**n_features)
+        step_size = 0.001/((polynomial_order+1)**n_features)
         self.approx_agent = func_approx_RL.ApproxAgent(
             n_features = n_features,
             n_actions = number_of_low_level_heuristics,
@@ -402,12 +402,12 @@ class Optimiser():
         explore_prob = self.min_explore + (self.max_explore - self.min_explore)*np.exp(-self.explore_decay_rate*self.episode)
 
         #e.g. decaying epslion-greedy, UCB (Book: warren B. Powell Approximate Dynamic Programming has some more in)
-        if np.random.uniform() < explore_prob:
+        if rd.random() < explore_prob:
             # Explore Randomly
             operator_number = self.llh_dict[rd.choices(self.llh_names[:-1])[0]]
         else:
             # Exploit best action
-            operator_number = self.agent.getBestAction()
+            operator_number = self.agent.getBestActionInt()
         
         # Set a dummy new state to get into the while loop
         self.agent.setNewState((1,None))
@@ -451,7 +451,7 @@ class Optimiser():
             explore_prob = self.min_explore + (self.max_explore - self.min_explore)*np.exp(-self.explore_decay_rate*self.episode)
 
             #apply the epsilon-greedy policy again
-            if np.random.uniform() < explore_prob:
+            if rd.random() < explore_prob:
                 #Explore Randomly
                 # Note!! this time we can choose 0 to exit out of the LLH sequence
                 operator_number = self.llh_dict[rd.choices(self.llh_names)[0]]
@@ -459,7 +459,7 @@ class Optimiser():
                 self.agent.setNewState((self.agent.getCurrentState()[0] + 1,operator_number))
             else:
                 #Exploit best action
-                operator_number = self.agent.getBestAction()
+                operator_number = self.agent.getBestActionInt()
                  #update new state with sequence length+1 and next used operator
                 self.agent.setNewState((self.agent.getCurrentState()[0] + 1,operator_number))
 

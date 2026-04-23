@@ -290,12 +290,12 @@ class QLearner:
             state: tuple
                 state to find the argmax of
         """
-        if state == None:
-            return np.argmax(self.__q_table[...])
-        elif type(state) == tuple:
-            return np.argmax(self.__q_table[state + (...,)])
-        else:
-            return np.argmax(self.__q_table[(state,) + (...,)])
+        # if state == None:
+        #     return np.argmax(self.__q_table[...])
+        # elif type(state) == tuple:
+        return np.argmax(self.__q_table[self.__current_state + (...,)])
+        # else:
+        #     return np.argmax(self.__q_table[(state,) + (...,)])
     
     def getBestAction(self, state: tuple = None) -> tuple:
         """
