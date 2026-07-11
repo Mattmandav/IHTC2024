@@ -318,7 +318,7 @@ class Optimiser():
                     previous_values = self.solution_check(best_solution)
                 
             # Getting the best of this pool
-            temp_best_index = np.argmin([value['Cost'] for value in values])
+            temp_best_index = np.argmin([value['Cost'] for value in previous_values])
             temp_best =  new_solutions[temp_best_index] # This is the json for the temp_best solution
             temp_best_value = previous_values[temp_best_index]['Cost']
         
