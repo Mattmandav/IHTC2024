@@ -287,48 +287,48 @@ class Optimiser():
             if self.verbose:
                 self.hits['tried'] += 1
 
-            # Selecting best solution of this pool
-            temp_best_index = np.argmin([value['Cost'] for value in values])
-            temp_best =  new_solutions[temp_best_index] # This is the json for the temp_best solution
-
-            # Record costs and violations
-            temp_best_value = values[temp_best_index]['Cost']
-            temp_best_violations = values[temp_best_index]["Violations"]
-            
-            # Saving best solution
-            if(temp_best_value < best_solution_value):
-                if(temp_best_violations > 0):
-                   continue 
-
-                best_solution = temp_best
-                best_solution_value = temp_best_value
-                # Dont quite get the point of this (?)
-                # Assume its just collecting costs over time but why don't you just collect all this information from the start when running the intiial pool instead of at the end?
-                # Also since its for plotting, we'll only do this is the plotting option is chosen
-                self.solution_collect_costs(temp_best)
-
-            # Deciding whether to accept new solution as current solution
+            # Deciding whether to accept new solutions
             if(self.acceptance_selection == "improve_only"):
-                solution_pool, previous_values = acceptance.improve_only()
-            
+                solution_pool, previous_values = acceptance.improve_only(
+                    values,
+                    new_solutions,
+                    best_solution_value,
+                )
             elif(self.acceptance_selection == "r2r"):
                 solution_pool, previous_values = acceptance.bestrr(
                     values,
                     new_solutions,
-                    temp_best_value)
-            
+                    best_solution_value,
+                    rho = 0.01,
+                )
             else:
                 solution_pool, previous_values = acceptance.simulated_annealing(
                     values,
                     new_solutions,
                     previous_values,
                     self.start_time,
-                    self.time_limit)
+                    self.time_limit,
+                    delta = 1,
+                )
+
+            # Replace "None" or infeasible solutions with current best
+            for i in range(len(previous_values)):
+                if(solution_pool[i] == None or previous_values[i]["Violations"] > 0):
+                    solution_pool[i] = best_solution
+                    previous_values = self.solution_check(best_solution)
                 
-            # Padding solutions
-            while len(solution_pool)<pool_size:
-                solution_pool.append(best_solution)
-                previous_values.append(temp_best_value)
+            # Getting the best of this pool
+            temp_best_index = np.argmin([value['Cost'] for value in values])
+            temp_best =  new_solutions[temp_best_index] # This is the json for the temp_best solution
+            temp_best_value = previous_values[temp_best_index]['Cost']
+        
+            # Saving best solution
+            if(temp_best_value < best_solution_value):
+                best_solution = temp_best
+                best_solution_value = temp_best_value
+                self.solution_collect_costs(temp_best)
+            
+            # Reporting results
             if self.verbose:
                 print("Loops ran: {}, Accepted Operators: {}, Most used operators: {}, Most Recent operator: {}".format(self.hits['tried'],self.hits['successful'],max(set(self.hits['type']), key=self.hits['type'].count),self.hits['type'][-1]))
 
