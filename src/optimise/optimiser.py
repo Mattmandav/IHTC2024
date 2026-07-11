@@ -313,14 +313,15 @@ class Optimiser():
 
             # Replace "None" or infeasible solutions with current best
             for i in range(len(previous_values)):
-                if(solution_pool[i] == None or previous_values[i]["Violations"] > 0):
+                if(solution_pool[i] == None or values[i]["Violations"]> 0):
                     solution_pool[i] = best_solution
-                    previous_values = self.solution_check(best_solution)
+                    previous_values[i] = self.solution_check(best_solution)["Cost"]
+                
                 
             # Getting the best of this pool
-            temp_best_index = np.argmin([value['Cost'] for value in previous_values])
+            temp_best_index = np.argmin([value for value in previous_values])
             temp_best =  new_solutions[temp_best_index] # This is the json for the temp_best solution
-            temp_best_value = previous_values[temp_best_index]['Cost']
+            temp_best_value = previous_values[temp_best_index]
         
             # Saving best solution
             if(temp_best_value < best_solution_value):
