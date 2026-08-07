@@ -16,7 +16,7 @@ def improve_only(values,new_solutions,best_value):
     new_values = []
     for i in range(len(values)):
         # Solution is better than current best
-        if(values[i] < best_value):
+        if(values[i]["Cost"] < best_value):
             solution_pool.append(new_solutions[i])
             new_values.append(values[i]["Cost"])
         # Solution is not
