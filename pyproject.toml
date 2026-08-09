@@ -1,0 +1,16 @@
+[project]
+name = "ihtc2024"
+version = "1.0.0"
+description = "IHTC Code"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.5.1",
+    "pandas>=3.0.5",
+    "plotly>=6.9.0",
+    "irace",
+    "ruff>=0.16.2",
+]
+
+[tool.uv.sources]
+irace = { git = "https://github.com/Saethox/iracepy-tiny" }

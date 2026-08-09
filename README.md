@@ -228,7 +228,7 @@ for patient in data["patients"]:
         "surgery_duration": patient["surgery_duration"],
         "possible_rooms": self.patient_possible_rooms(patient),
         "possible_theaters": self.patient_possible_theaters(patient),
-        "possible_admission_days": self.patient_possible_admission_days(patient)
+        "possible_admission_days": self.patient_possible_admission_days(patient),
     }
 ```
 
@@ -239,6 +239,6 @@ self.nurse_dict = {}
 for nurse in data["nurses"]:
     self.nurse_dict[nurse["id"]] = {
         "skill_level": nurse["skill_level"],
-        "working_shifts": self.nurse_working_shifts(nurse)
+        "working_shifts": self.nurse_working_shifts(nurse),
     }
 ```
