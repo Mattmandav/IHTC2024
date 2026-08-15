@@ -1,5 +1,4 @@
-# Some uv stuff we don't want in the actual version
-*.sh
+
 
 debug/*
 data/individual_costs/*
