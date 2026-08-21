@@ -3,7 +3,7 @@ import os
 from src.optimise.optimiser import main
 import json
 
-LONG_HORIZON = [a + "_" + str(i+1) for a in ['l' + str(num) for num in [35, 42, 49, 56]] for i in range(6)]
+LONG_HORIZON = [a + "_" + str(i+1) + '.json' for a in ['l' + str(num) for num in [35, 42, 49, 56]] for i in range(6)]
 SMALL = ['small0' + str(i+1) + '.json' for i in range(9)]
 SUPPLEMENTARY_FILES = LONG_HORIZON + SMALL
 
@@ -31,37 +31,36 @@ if __name__ == "__main__":
     # Run all combinations in params
     for selection in params:
         for acceptance in params[selection]:
-            for instance in instance_names:
-                print('Selection: {}, acceptance: {}, instance: {}'.format(selection, acceptance, instance))
-                
-                # Running optimisation
-                sequence_length = params[selection][acceptance]['sequence_length']
-                if acceptance == 'r2r':
-                    rho = params[selection][acceptance]['rho']
-                else:
-                    rho = None
-                if selection == 'qlearner' or selection == 'mcrl':
-                    lambda_q = params[selection][acceptance]['lambda_q']
-                else:
-                    lambda_q = None
-                if acceptance == 'sa':
-                    delta_sa = params[selection][acceptance]['delta_sa']
-                else:
-                    delta_sa = None
-                solution, costs = main('data/instances/{}'.format(instance),
-                                        seed = 42,
-                                        time_limit = 7200, # 2 hour runs
-                                        time_tolerance = 3,
-                                        verbose = False,
-                                        heuristic_selection=selection,
-                                        acceptance_selection=acceptance,
-                                        sequence_length=sequence_length,
-                                        rho_r2r=rho,
-                                        delta_sa=delta_sa,
-                                        lambda_q=lambda_q
-                                        )
+            print('Selection: {}, acceptance: {}, instance: {}'.format(selection, acceptance, instance))
+            
+            # Running optimisation
+            sequence_length = params[selection][acceptance]['sequence_length']
+            if acceptance == 'r2r':
+                rho = params[selection][acceptance]['rho']
+            else:
+                rho = None
+            if selection == 'qlearner' or selection == 'mcrl':
+                lambda_q = params[selection][acceptance]['lambda_q']
+            else:
+                lambda_q = None
+            if acceptance == 'sa':
+                delta_sa = params[selection][acceptance]['delta_sa']
+            else:
+                delta_sa = None
+            solution, costs = main('data/instances/{}'.format(instance),
+                                    seed = 42,
+                                    time_limit = 7200, # 2 hour runs
+                                    time_tolerance = 3,
+                                    verbose = False,
+                                    heuristic_selection=selection,
+                                    acceptance_selection=acceptance,
+                                    sequence_length=sequence_length,
+                                    rho_r2r=rho,
+                                    delta_sa=delta_sa,
+                                    lambda_q=lambda_q
+                                    )
 
-                # Saving solution
-                with open("{}/instance_{}_{}_sol_{}".format(sys.argv[1], selection, acceptance, instance), "w") as outfile: 
-                    #solution.pop('operator')
-                    json.dump(solution, outfile, indent=2)
+            # Saving solution
+            with open("{}/instance_{}_{}_sol_{}".format(sys.argv[1], selection, acceptance, instance), "w") as outfile: 
+                #solution.pop('operator')
+                json.dump(solution, outfile, indent=2)
