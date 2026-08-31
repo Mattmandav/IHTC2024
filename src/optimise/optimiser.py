@@ -86,7 +86,7 @@ def main(
         pickle.dump(
             improvement_over_time,
             open(
-                "./data/solution_over_time/run{}/{}_{}_{}.pkl".format(
+                "./data/solutions_over_time/{}_{}_{}.pkl".format(
                     run_through,
                     heuristic_selection,
                     acceptance_selection,
