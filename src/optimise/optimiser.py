@@ -9,6 +9,7 @@ import pickle
 from ast import literal_eval
 
 import src.optimise.heuristics as llh
+import src.optimise.heuristics_imada as llh_imada
 import src.optimise.greedy as grd
 from src.data.instance import Data
 from src.policies import qlearner
@@ -32,6 +33,7 @@ def main(
     run_through=0,
     delta_sa=1,
     num_cores=4,
+    heuristic_set="ours",
 ):
 
     # Open and read the JSON file
@@ -55,6 +57,7 @@ def main(
         rho_learning_rate_r2r=rho_r2r,
         delta_sa=delta_sa,
         num_cores=num_cores,
+        heuristic_set=heuristic_set,
     )
 
     # Run an optimisation method for initial
@@ -114,6 +117,7 @@ class Optimiser:
         rho_learning_rate_r2r=0.05,
         delta_sa=1,
         num_cores=4,
+        heuristic_set="ours",
     ):
 
         # Get number of successful improvements over all iterations
@@ -138,11 +142,19 @@ class Optimiser:
 
         self.instance_file_name = instance_file_name
         # Importing low level heuristics
-        self.llh_names = [
-            name
-            for name in dir(llh)
-            if callable(getattr(llh, name)) and not name.startswith("__")
-        ]
+        # heuristic_set: "ours", "imada" or "both"
+        modules = {
+            "ours": [llh],
+            "imada": [llh_imada],
+            "both": [llh, llh_imada],
+        }[heuristic_set]
+        self.llh_funcs = {
+            name: getattr(module, name)
+            for module in modules
+            for name in dir(module)
+            if callable(getattr(module, name)) and not name.startswith("__")
+        }
+        self.llh_names = list(self.llh_funcs)
         if self.heuristic_selection == "qlearner":
             self.llh_names = self.llh_names + ["End"]
         self.llh_dict = {}
@@ -438,7 +450,7 @@ class Optimiser:
         init_solution = solution
 
         for operator in operator_names:
-            new_solution = eval("llh." + operator + "(self.data,init_solution)")
+            new_solution = self.llh_funcs[operator](self.data, init_solution)
             init_solution = new_solution
 
         # Add the operator used
@@ -494,9 +506,7 @@ class Optimiser:
             and self.agent.getNewState()[0] < self.max_sequence_length
         ):
             # Apply operator
-            new_solution = eval(
-                "llh." + self.llh_names[operator_number] + "(self.data,solution)"
-            )
+            new_solution = self.llh_funcs[self.llh_names[operator_number]](self.data, solution)
 
             # Add the operator used to the new_solution
             new_solution["operator"] = self.llh_names[operator_number]
@@ -615,9 +625,7 @@ class Optimiser:
             operator_number = sequence_of_operators[operator]
 
             # Apply operator
-            new_solution = eval(
-                "llh." + self.llh_names[operator_number] + "(self.data,solution)"
-            )
+            new_solution = self.llh_funcs[self.llh_names[operator_number]](self.data, solution)
 
             # Add the operator used to the new_solution
             new_solution["operator"] = self.llh_names[operator_number]
