@@ -54,7 +54,7 @@ def __update_allocations__(data, solution):
             else:
                 break
         # Update theater allocations
-        solution["theater_allocation"][str((i0, t["id"]))] -= patient_information[
+        solution["theater_allocation"][str((i0, p["operating_theater"]))] -= patient_information[
             "surgery_duration"
         ]
         # Update surgeon allocations
@@ -360,11 +360,13 @@ def remove_patient(data, solution):
     # Selecting a patient to remove
     patient_to_remove = rd.choices(assigned_non_mandatory_patients)[0]
 
-    # Removing patient
+    # Removing patient (kept in the list as unscheduled, as in greedy)
     new_patients = []
     for current_patient in solution["patients"]:
         if current_patient["id"] != patient_to_remove:
             new_patients.append(current_patient)
+        else:
+            new_patients.append({"id": patient_to_remove, "admission_day": "none"})
     solution["patients"] = new_patients
 
     solution = __update_allocations__(data, solution)
@@ -392,11 +394,13 @@ def remove_patient_any(data, solution):
     # Selecting a patient to remove
     patient_to_remove = rd.choices(assigned_patients)[0]
 
-    # Removing patient
+    # Removing patient (kept in the list as unscheduled, as in greedy)
     new_patients = []
     for current_patient in solution["patients"]:
         if current_patient["id"] != patient_to_remove:
             new_patients.append(current_patient)
+        else:
+            new_patients.append({"id": patient_to_remove, "admission_day": "none"})
     solution["patients"] = new_patients
 
     solution = __update_allocations__(data, solution)
@@ -620,6 +624,10 @@ def __add_nurse_room(data, solution, nurse_id):
     all_rooms = [room["id"] for room in data.data["rooms"]]
     shift = rd.choices(nurse["working_shifts"])[0]
     room = rd.choices(all_rooms)[0]
+
+    # Nurses with no assignments are not in the solution yet, so add them
+    if nurse_id not in [nurse_sol["id"] for nurse_sol in solution["nurses"]]:
+        solution["nurses"].append({"id": nurse_id, "assignments": []})
 
     # Updating the working shifts
     new_nurse_assignments = []
