@@ -9,7 +9,6 @@ import pickle
 from ast import literal_eval
 
 import src.optimise.heuristics as llh
-import src.optimise.heuristics_imada as llh_imada
 import src.optimise.greedy as grd
 from src.data.instance import Data
 from src.policies import qlearner
@@ -143,11 +142,16 @@ class Optimiser:
         self.instance_file_name = instance_file_name
         # Importing low level heuristics
         # heuristic_set: "ours", "imada" or "both"
-        modules = {
-            "ours": [llh],
-            "imada": [llh_imada],
-            "both": [llh, llh_imada],
-        }[heuristic_set]
+        if heuristic_set not in ("ours", "imada", "both"):
+            raise ValueError(f"Unknown heuristic_set: {heuristic_set}")
+        modules = []
+        if heuristic_set in ("ours", "both"):
+            modules.append(llh)
+        if heuristic_set in ("imada", "both"):
+            # Needs the compiled IMADA bridge, so only imported when asked for
+            import src.optimise.heuristics_imada as llh_imada
+
+            modules.append(llh_imada)
         self.llh_funcs = {
             name: getattr(module, name)
             for module in modules
@@ -168,6 +172,8 @@ class Optimiser:
         # Processing instance data
         self.raw_data = raw_data
         self.data = Data(raw_data)
+        if heuristic_set in ("imada", "both"):
+            llh_imada.__prepare__(self.data)
 
         # Info on collecting cost info
         self.costs = {
