@@ -2,8 +2,11 @@
 irace tuning for every (selection, acceptance, heuristic set) combination.
 
 Usage:
+    uv run irace.py              run all 27 configurations in sequence
     uv run irace.py <run>        run one configuration by number (1-27) or id
     uv run irace.py --list       show all configurations
+
+On STORM, irace_slurm.sh runs each configuration as one task of a job array.
 
 Runs 1-9 keep their original numbering and use our heuristics ("ours");
 10-18 repeat them with the IMADA heuristics and 19-27 with both sets.
@@ -157,19 +160,29 @@ def list_configurations():
         print(f"{i:2d}  {method_id(*configuration)}")
 
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        sys.exit(__doc__)
-    if sys.argv[1] == "--list":
-        list_configurations()
-        sys.exit(0)
-
+def parse_configuration(arg):
     ids = [method_id(*c) for c in CONFIGURATIONS]
-    arg = sys.argv[1]
     if arg.isdigit() and 1 <= int(arg) <= len(CONFIGURATIONS):
-        configuration = CONFIGURATIONS[int(arg) - 1]
-    elif arg in ids:
-        configuration = CONFIGURATIONS[ids.index(arg)]
+        return CONFIGURATIONS[int(arg) - 1]
+    if arg in ids:
+        return CONFIGURATIONS[ids.index(arg)]
+    sys.exit(f"Unknown run '{arg}'. Use 1-{len(CONFIGURATIONS)} or one of:\n" + "\n".join(ids))
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 2:
+        sys.exit(__doc__)
+
+    if len(sys.argv) == 2:
+        if sys.argv[1] == "--list":
+            list_configurations()
+        else:
+            main(*parse_configuration(sys.argv[1]))
     else:
-        sys.exit(f"Unknown run '{arg}'. Use 1-{len(CONFIGURATIONS)} or one of:\n" + "\n".join(ids))
-    main(*configuration)
+        # No argument: run everything in sequence. Check the IMADA bridge
+        # first, rather than failing when the first IMADA configuration starts.
+        if any(c[2] in ("imada", "both") for c in CONFIGURATIONS):
+            check_imada_bridge()
+        for i, configuration in enumerate(CONFIGURATIONS, start=1):
+            print(f"[{i}/{len(CONFIGURATIONS)}] {method_id(*configuration)}")
+            main(*configuration)
