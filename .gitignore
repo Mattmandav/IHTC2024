@@ -1,5 +1,3 @@
-uv.lock
-
 debug/*
 data/individual_costs/*
 data/instances/*
