@@ -594,7 +594,7 @@ class Optimiser:
         # e.g. decaying epslion-greedy, UCB (Book: warren B. Powell Approximate Dynamic Programming has some more in)
         if np.random.uniform() < explore_prob:
             # Explore Randomly
-            operator_number = self.llh_dict[rd.choices(self.llh_names[:-1])[0]]
+            operator_number = self.llh_dict[rd.choices(self.llh_names)[0]]
         else:
             # Exploit best action
             operator_number = np.argmax(
@@ -604,10 +604,8 @@ class Optimiser:
 
         self.NVisits[0, sequence_of_operators[0], sequence_of_operators[1]] += 1
 
-        while (
-            self.llh_names[operator_number] != "End"
-            and len(sequence_of_operators) < self.max_sequence_length
-        ):
+        # Fixed-length sequences: MCRL has no "End" action (only the Q-learner does)
+        while len(sequence_of_operators) < self.max_sequence_length:
             # e.g. decaying epslion-greedy, UCB (Book: warren B. Powell Approximate Dynamic Programming has some more in)
             if np.random.uniform() < explore_prob:
                 # Explore Randomly
