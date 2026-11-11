@@ -7,7 +7,7 @@
 #SBATCH --mail-type=end
 #SBATCH --exclude=blackett
 
-# One irace configuration per array task (uv run irace.py --list shows them):
+# One irace configuration per array task (uv run run_irace.py --list shows them):
 #   1-9   our heuristics, 10-18 IMADA heuristics, 19-27 both
 # Each task runs 300 experiments of 600 s, about 50 hours. irace only writes
 # its CSV at the end, so make sure the partition's time limit allows that.
@@ -19,8 +19,8 @@
 
 source ~/start-pyenv
 
-# irace.py uses paths relative to the repo root (main.py, data/instances, CSVs)
+# run_irace.py uses paths relative to the repo root (main.py, data/instances, CSVs)
 REPO=~/IHTC2024
 cd $REPO
 
-srun uv run irace.py $SLURM_ARRAY_TASK_ID
+srun uv run run_irace.py $SLURM_ARRAY_TASK_ID

@@ -2,11 +2,14 @@
 irace tuning for every (selection, acceptance, heuristic set) combination.
 
 Usage:
-    uv run irace.py              run all 27 configurations in sequence
-    uv run irace.py <run>        run one configuration by number (1-27) or id
-    uv run irace.py --list       show all configurations
+    uv run run_irace.py          run all 27 configurations in sequence
+    uv run run_irace.py <run>    run one configuration by number (1-27) or id
+    uv run run_irace.py --list   show all configurations
 
 On STORM, irace_slurm.sh runs each configuration as one task of a job array.
+
+Named run_irace.py, not irace.py: a script called irace.py in the repo root
+shadows the irace package, so `from irace import ...` imports this file itself.
 
 Runs 1-9 keep their original numbering and use our heuristics ("ours");
 10-18 repeat them with the IMADA heuristics and 19-27 with both sets.
