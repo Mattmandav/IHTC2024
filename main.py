@@ -43,6 +43,12 @@ if __name__ == "__main__":
         parser.add_argument("--rho_learning_rate", type=float, default="0.01")  # NEW
         parser.add_argument("--num_cores", type=int, default="4")  # NEW
         parser.add_argument("--delta_sa", type=float, default="1")  # NEW
+        parser.add_argument(
+            "--heuristic_set",
+            type=str,
+            default="ours",
+            choices=["ours", "imada", "both"],
+        )
         args = parser.parse_args()
 
         # Set the sequence length to be 1 if we are using random and 10 for the Q-Learner if not set explicitly
@@ -89,6 +95,7 @@ if __name__ == "__main__":
             rho_r2r=args.rho_learning_rate,
             num_cores=args.num_cores,
             delta_sa=args.delta_sa,
+            heuristic_set=args.heuristic_set,
         )
 
         # Saving solution

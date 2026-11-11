@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import time
 import multiprocessing as mp
@@ -85,18 +86,21 @@ def main(
     print()
 
     if save_improvement_over_time:
-        pickle.dump(
-            improvement_over_time,
-            open(
-                "./data/solutions_over_time/{}_{}_{}.pkl".format(
-                    run_through,
-                    heuristic_selection,
-                    acceptance_selection,
-                    input_file[-8:-5],
-                ),
-                "wb",
-            ),
+        # One file per run, selection, acceptance, heuristic set and instance,
+        # e.g. 0_qlearner_sa_ours_i01.pkl
+        over_time_folder = "./data/solutions_over_time"
+        os.makedirs(over_time_folder, exist_ok=True)
+        instance_name = os.path.splitext(os.path.basename(input_file))[0]
+        over_time_file = "{}/{}_{}_{}_{}_{}.pkl".format(
+            over_time_folder,
+            run_through,
+            heuristic_selection,
+            acceptance_selection,
+            heuristic_set,
+            instance_name,
         )
+        with open(over_time_file, "wb") as f:
+            pickle.dump(improvement_over_time, f)
     return solution, costs
 
 

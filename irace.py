@@ -1,499 +1,175 @@
-import subprocess
+"""
+irace tuning for every (selection, acceptance, heuristic set) combination.
+
+Usage:
+    uv run irace.py <run>        run one configuration by number (1-27) or id
+    uv run irace.py --list       show all configurations
+
+Runs 1-9 keep their original numbering and use our heuristics ("ours");
+10-18 repeat them with the IMADA heuristics and 19-27 with both sets.
+Results are written to ./<id>.csv, e.g. ./QL_sa_imada.csv.
+
+Tuned parameters depend on the configuration:
+    sequence_length   always                         (1 to 7)
+    lambda_qlearner   qlearner and mcrl selection    (0 to 0.005)
+    rho               r2r acceptance                 (0 to 1)
+    delta_sa          sa acceptance                  (0 to 1)
+"""
+
 import os
-from irace import irace, ParameterSpace, Integer, Scenario, Real
-import pandas as pd
+import subprocess
 import sys
 
+from irace import Integer, ParameterSpace, Real, Scenario, irace
 
-def target_runner_ql_sa(experiment, scenario):
-    """
-    This function is called by irace for every test.
-    It runs the IHTC solver and returns the cost.
-    """
-    # configuration is a dict, e.g., {'sequence_length': 20}
-    seq_len = experiment.configuration["sequence_length"]
-    lambda_q = experiment.configuration["lambda_qlearner"]
+SELECTIONS = {"qlearner": "QL", "mcrl": "mcrl", "random": "r"}
+ACCEPTANCES = {"sa": "sa", "improve_only": "io", "r2r": "r2r"}
+HEURISTIC_SETS = ["ours", "imada", "both"]
 
-    # Construct the command to run your solver
-    # instance is the path to the JSON file provided by irace
+# Original run order (runs 1-9), repeated for each heuristic set
+RUN_ORDER = [
+    ("qlearner", "sa"),
+    ("qlearner", "improve_only"),
+    ("mcrl", "improve_only"),
+    ("mcrl", "sa"),
+    ("random", "sa"),
+    ("random", "improve_only"),
+    ("random", "r2r"),
+    ("qlearner", "r2r"),
+    ("mcrl", "r2r"),
+]
+
+CONFIGURATIONS = [
+    (selection, acceptance, heuristic_set)
+    for heuristic_set in HEURISTIC_SETS
+    for selection, acceptance in RUN_ORDER
+]
+
+TIME_LIMIT = 600
+FAILED_COST = 999999.0
+
+
+def method_id(selection, acceptance, heuristic_set):
+    return f"{SELECTIONS[selection]}_{ACCEPTANCES[acceptance]}_{heuristic_set}"
+
+
+def parameter_space(selection, acceptance):
+    params = [Integer("sequence_length", 1, 7)]
+    if selection in ("qlearner", "mcrl"):
+        params.append(Real("lambda_qlearner", 0, 0.005))
+    if acceptance == "r2r":
+        params.append(Real("rho", 0, 1))
+    if acceptance == "sa":
+        params.append(Real("delta_sa", 0, 1))
+    return ParameterSpace(params)
+
+
+def build_command(selection, acceptance, heuristic_set, configuration, seed, instance):
     command = [
         "uv",
         "run",
         "main.py",
         "--sequence_length",
-        str(seq_len),
+        str(configuration["sequence_length"]),
         "--seed",
-        str(experiment.seed),
+        str(seed),
         "--time_limit",
-        str(600),
+        str(TIME_LIMIT),
         "--selection",
-        "qlearner",
+        selection,
         "--acceptance",
-        "sa",
-        "--lambda_qlearner",
-        str(lambda_q),
-        str(experiment.instance),
+        acceptance,
+        "--heuristic_set",
+        heuristic_set,
     ]
+    if "lambda_qlearner" in configuration:
+        command += ["--lambda_qlearner", str(configuration["lambda_qlearner"])]
+    if "rho" in configuration:
+        command += ["--rho_learning_rate", str(configuration["rho"])]
+    if "delta_sa" in configuration:
+        command += ["--delta_sa", str(configuration["delta_sa"])]
+    return command + [str(instance)]
 
+
+def make_target_runner(selection, acceptance, heuristic_set):
+    def target_runner(experiment, scenario):
+        """
+        Called by irace for every experiment: runs the IHTC solver and returns
+        the cost, which main.py prints as the last line of its output.
+        """
+        command = build_command(
+            selection,
+            acceptance,
+            heuristic_set,
+            experiment.configuration,
+            experiment.seed,
+            experiment.instance,
+        )
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, check=True)
+            print(result)
+            lines = result.stdout.strip().split("\n")
+            return float(lines[-1])
+        except Exception as e:
+            print(f"Error running instance {experiment.instance}: {e}")
+            return FAILED_COST
+
+    return target_runner
+
+
+def check_imada_bridge():
+    """
+    Without the compiled bridge every IMADA run would fail and score
+    FAILED_COST, so irace would tune on meaningless results. Fail early instead.
+    """
     try:
-        # Run the solver and capture output
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        print(result)
-        # Get the last line of output (the cost)
-        lines = result.stdout.strip().split("\n")
-        cost = float(lines[-1])
-        return cost
-    except Exception as e:
-        print(f"Error running instance {experiment.instance}: {e}")
-        return 999999.0  # Return a very high cost on failure
+        import src.optimise.heuristics_imada  # noqa: F401
+    except ImportError as e:
+        sys.exit(f"Cannot tune with the IMADA heuristics:\n{e}")
 
 
-def target_runner_ql_improve_only(experiment, scenario):
-    """
-    This function is called by irace for every test.
-    It runs the IHTC solver and returns the cost.
-    """
-    # configuration is a dict, e.g., {'sequence_length': 20}
-    seq_len = experiment.configuration["sequence_length"]
-    lambda_q = experiment.configuration["lambda_qlearner"]
+def main(selection, acceptance, heuristic_set):
+    if heuristic_set in ("imada", "both"):
+        check_imada_bridge()
 
-    # Construct the command to run your solver
-    # instance is the path to the JSON file provided by irace
-    command = [
-        "uv",
-        "run",
-        "main.py",
-        "--sequence_length",
-        str(seq_len),
-        "--seed",
-        str(experiment.seed),
-        "--time_limit",
-        str(600),
-        "--selection",
-        "qlearner",
-        "--acceptance",
-        "improve_only",
-        "--lambda_qlearner",
-        str(lambda_q),
-        str(experiment.instance),
-    ]
-
-    try:
-        # Run the solver and capture output
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        print(result)
-        # Get the last line of output (the cost)
-        lines = result.stdout.strip().split("\n")
-        cost = float(lines[-1])
-        return cost
-    except Exception as e:
-        print(f"Error running instance {experiment.instance}: {e}")
-        return 999999.0  # Return a very high cost on failure
-
-
-def target_runner_ql_r2r(experiment, scenario):
-    """
-    This function is called by irace for every test.
-    It runs the IHTC solver and returns the cost.
-    """
-    # configuration is a dict, e.g., {'sequence_length': 20}
-    seq_len = experiment.configuration["sequence_length"]
-    lambda_q = experiment.configuration["lambda_qlearner"]
-    rho = experiment.configuration["rho"]
-
-    # Construct the command to run your solver
-    # instance is the path to the JSON file provided by irace
-    command = [
-        "uv",
-        "run",
-        "main.py",
-        "--sequence_length",
-        str(seq_len),
-        "--seed",
-        str(experiment.seed),
-        "--time_limit",
-        str(600),
-        "--selection",
-        "qlearner",
-        "--acceptance",
-        "r2r",
-        "--lambda_qlearner",
-        str(lambda_q),
-        "--rho_learning_rate",
-        str(rho),
-        str(experiment.instance),
-    ]
-
-    try:
-        # Run the solver and capture output
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        print(result)
-        # Get the last line of output (the cost)
-        lines = result.stdout.strip().split("\n")
-        cost = float(lines[-1])
-        return cost
-    except Exception as e:
-        print(f"Error running instance {experiment.instance}: {e}")
-        return 999999.0  # Return a very high cost on failure
-
-
-def target_runner_mcrl_improve_only(experiment, scenario):
-    """
-    This function is called by irace for every test.
-    It runs the IHTC solver and returns the cost.
-    """
-    # configuration is a dict, e.g., {'sequence_length': 20}
-    seq_len = experiment.configuration["sequence_length"]
-    lambda_q = experiment.configuration["lambda_qlearner"]
-
-    # Construct the command to run your solver
-    # instance is the path to the JSON file provided by irace
-    command = [
-        "uv",
-        "run",
-        "main.py",
-        "--sequence_length",
-        str(seq_len),
-        "--seed",
-        str(experiment.seed),
-        "--time_limit",
-        str(600),
-        "--selection",
-        "mcrl",
-        "--acceptance",
-        "improve_only",
-        "--lambda_qlearner",
-        str(lambda_q),
-        str(experiment.instance),
-    ]
-
-    try:
-        # Run the solver and capture output
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        print(result)
-        # Get the last line of output (the cost)
-        lines = result.stdout.strip().split("\n")
-        cost = float(lines[-1])
-        return cost
-    except Exception as e:
-        print(f"Error running instance {experiment.instance}: {e}")
-        return 999999.0  # Return a very high cost on failure
-
-
-def target_runner_mcrl_r2r(experiment, scenario):
-    """
-    This function is called by irace for every test.
-    It runs the IHTC solver and returns the cost.
-    """
-    # configuration is a dict, e.g., {'sequence_length': 20}
-    seq_len = experiment.configuration["sequence_length"]
-    lambda_q = experiment.configuration["lambda_qlearner"]
-    rho = experiment.configuration["rho"]
-
-    # Construct the command to run your solver
-    # instance is the path to the JSON file provided by irace
-    command = [
-        "uv",
-        "run",
-        "main.py",
-        "--sequence_length",
-        str(seq_len),
-        "--seed",
-        str(experiment.seed),
-        "--time_limit",
-        str(600),
-        "--selection",
-        "mcrl",
-        "--acceptance",
-        "r2r",
-        "--lambda_qlearner",
-        str(lambda_q),
-        "--rho_learning_rate",
-        str(rho),
-        str(experiment.instance),
-    ]
-
-    try:
-        # Run the solver and capture output
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        print(result)
-        # Get the last line of output (the cost)
-        lines = result.stdout.strip().split("\n")
-        cost = float(lines[-1])
-        return cost
-    except Exception as e:
-        print(f"Error running instance {experiment.instance}: {e}")
-        return 999999.0  # Return a very high cost on failure
-
-
-def target_runner_mcrl_sa(experiment, scenario):
-    """
-    This function is called by irace for every test.
-    It runs the IHTC solver and returns the cost.
-    """
-    # configuration is a dict, e.g., {'sequence_length': 20}
-    seq_len = experiment.configuration["sequence_length"]
-    lambda_q = experiment.configuration["lambda_qlearner"]
-
-    # Construct the command to run your solver
-    # instance is the path to the JSON file provided by irace
-    command = [
-        "uv",
-        "run",
-        "main.py",
-        "--sequence_length",
-        str(seq_len),
-        "--seed",
-        str(experiment.seed),
-        "--time_limit",
-        str(600),
-        "--selection",
-        "mcrl",
-        "--acceptance",
-        "sa",
-        "--lambda_qlearner",
-        str(lambda_q),
-        str(experiment.instance),
-    ]
-
-    try:
-        # Run the solver and capture output
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        print(result)
-        # Get the last line of output (the cost)
-        lines = result.stdout.strip().split("\n")
-        cost = float(lines[-1])
-        return cost
-    except Exception as e:
-        print(f"Error running instance {experiment.instance}: {e}")
-        return 999999.0  # Return a very high cost on failure
-
-
-def target_runner_random_sa(experiment, scenario):
-    """
-    This function is called by irace for every test.
-    It runs the IHTC solver and returns the cost.
-    """
-    # configuration is a dict, e.g., {'sequence_length': 20}
-    seq_len = experiment.configuration["sequence_length"]
-
-    # Construct the command to run your solver
-    # instance is the path to the JSON file provided by irace
-    command = [
-        "uv",
-        "run",
-        "main.py",
-        "--sequence_length",
-        str(seq_len),
-        "--seed",
-        str(experiment.seed),
-        "--time_limit",
-        str(600),
-        "--selection",
-        "random",
-        "--acceptance",
-        "sa",
-        str(experiment.instance),
-    ]
-
-    try:
-        # Run the solver and capture output
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        print(result)
-        # Get the last line of output (the cost)
-        lines = result.stdout.strip().split("\n")
-        cost = float(lines[-1])
-        return cost
-    except Exception as e:
-        print(f"Error running instance {experiment.instance}: {e}")
-        return 999999.0  # Return a very high cost on failure
-
-
-def target_runner_random_r2r(experiment, scenario):
-    """
-    This function is called by irace for every test.
-    It runs the IHTC solver and returns the cost.
-    """
-    # configuration is a dict, e.g., {'sequence_length': 20}
-    seq_len = experiment.configuration["sequence_length"]
-    rho = experiment.configuration["rho"]
-
-    # Construct the command to run your solver
-    # instance is the path to the JSON file provided by irace
-    command = [
-        "uv",
-        "run",
-        "main.py",
-        "--sequence_length",
-        str(seq_len),
-        "--seed",
-        str(experiment.seed),
-        "--time_limit",
-        str(600),
-        "--selection",
-        "random",
-        "--acceptance",
-        "r2r",
-        "--rho_learning_rate",
-        str(rho),
-        str(experiment.instance),
-    ]
-
-    try:
-        # Run the solver and capture output
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        print(result)
-        # Get the last line of output (the cost)
-        lines = result.stdout.strip().split("\n")
-        cost = float(lines[-1])
-        return cost
-    except Exception as e:
-        print(f"Error running instance {experiment.instance}: {e}")
-        return 999999.0  # Return a very high cost on failure
-
-
-def target_runner_random_improve_only(experiment, scenario):
-    """
-    This function is called by irace for every test.
-    It runs the IHTC solver and returns the cost.
-    """
-    # configuration is a dict, e.g., {'sequence_length': 20}
-    seq_len = experiment.configuration["sequence_length"]
-
-    # Construct the command to run your solver
-    # instance is the path to the JSON file provided by irace
-    command = [
-        "uv",
-        "run",
-        "main.py",
-        "--sequence_length",
-        str(seq_len),
-        "--seed",
-        str(experiment.seed),
-        "--time_limit",
-        str(600),
-        "--selection",
-        "random",
-        "--acceptance",
-        "improve_only",
-        str(experiment.instance),
-    ]
-
-    try:
-        # Run the solver and capture output
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        print(result)
-        # Get the last line of output (the cost)
-        lines = result.stdout.strip().split("\n")
-        cost = float(lines[-1])
-        return cost
-    except Exception as e:
-        print(f"Error running instance {experiment.instance}: {e}")
-        return 999999.0  # Return a very high cost on failure
-
-
-def main(parameter_space_to_run, method_to_run, method_id):
-    # 1. Define the Parameter Space
-    # name, type ('i' for integer, 'r' for real, 'c' for categorical), range/values
-    ps = parameter_space_to_run
-
-    # 2. Get list of instances (JSON files in the data/instances folder)
     instance_dir = "data/instances"
-
     scenario = Scenario(
         max_experiments=300,
         instances=[f for f in os.listdir(instance_dir) if f.endswith(".json")],
         verbose=0,
         seed=42,
     )
-    # 3. Initialize iracepy-tiny
-    # max_experiments: total number of times the solver will be run
+
+    name = method_id(selection, acceptance, heuristic_set)
+    print(f"Starting tuning: {name}")
     irace_eg = irace(
-        target_runner=method_to_run,
-        parameter_space=ps,
+        target_runner=make_target_runner(selection, acceptance, heuristic_set),
+        parameter_space=parameter_space(selection, acceptance),
         scenario=scenario,
         return_df=True,
     )
-
-    # 4. Run the tuning
-    print("Starting tuning...")
-    irace_eg.to_csv("./{}.csv".format(method_id))
+    irace_eg.to_csv(f"./{name}.csv")
     print(irace_eg)
 
 
+def list_configurations():
+    for i, configuration in enumerate(CONFIGURATIONS, start=1):
+        print(f"{i:2d}  {method_id(*configuration)}")
+
+
 if __name__ == "__main__":
-    run = int(sys.argv[1])
-    if run == 1:
-        main(
-            ParameterSpace(
-                [Integer("sequence_length", 1, 7), Real("lambda_qlearner", 0, 0.005)]
-            ),
-            target_runner_ql_sa,
-            "QL_sa",
-        )
-    elif run == 2:
-        main(
-            ParameterSpace(
-                [Integer("sequence_length", 1, 7), Real("lambda_qlearner", 0, 0.005)]
-            ),
-            target_runner_ql_improve_only,
-            "QL_io",
-        )
-    elif run == 3:
-        main(
-            ParameterSpace(
-                [Integer("sequence_length", 1, 7), Real("lambda_qlearner", 0, 0.005)]
-            ),
-            target_runner_mcrl_improve_only,
-            "mcrl_io",
-        )
-    elif run == 4:
-        main(
-            ParameterSpace(
-                [Integer("sequence_length", 1, 7), Real("lambda_qlearner", 0, 0.005)]
-            ),
-            target_runner_mcrl_sa,
-            "mcrl_sa",
-        )
-    elif run == 5:
-        main(
-            ParameterSpace([Integer("sequence_length", 1, 7)]),
-            target_runner_random_sa,
-            "r_sa",
-        )
-    elif run == 6:
-        main(
-            ParameterSpace([Integer("sequence_length", 1, 7)]),
-            target_runner_random_improve_only,
-            "r_io",
-        )
-    elif run == 7:
-        main(
-            ParameterSpace([Integer("sequence_length", 1, 7), Real("rho", 0, 1)]),
-            target_runner_random_r2r,
-            "r_r2r",
-        )
-    elif run == 8:
-        main(
-            ParameterSpace(
-                [
-                    Integer("sequence_length", 1, 7),
-                    Real("lambda_qlearner", 0, 0.005),
-                    Real("rho", 0, 1),
-                ]
-            ),
-            target_runner_ql_r2r,
-            "QL_r2r",
-        )
+    if len(sys.argv) != 2:
+        sys.exit(__doc__)
+    if sys.argv[1] == "--list":
+        list_configurations()
+        sys.exit(0)
+
+    ids = [method_id(*c) for c in CONFIGURATIONS]
+    arg = sys.argv[1]
+    if arg.isdigit() and 1 <= int(arg) <= len(CONFIGURATIONS):
+        configuration = CONFIGURATIONS[int(arg) - 1]
+    elif arg in ids:
+        configuration = CONFIGURATIONS[ids.index(arg)]
     else:
-        main(
-            ParameterSpace(
-                [
-                    Integer("sequence_length", 1, 7),
-                    Real("lambda_qlearner", 0, 0.005),
-                    Real("rho", 0, 1),
-                ]
-            ),
-            target_runner_mcrl_r2r,
-            "mcrl_r2r",
-        )
+        sys.exit(f"Unknown run '{arg}'. Use 1-{len(CONFIGURATIONS)} or one of:\n" + "\n".join(ids))
+    main(*configuration)
