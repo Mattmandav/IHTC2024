@@ -34,6 +34,7 @@ def main(
     delta_sa=1,
     num_cores=4,
     heuristic_set="ours",
+    record_greedy_cycles=False,
 ):
 
     # Open and read the JSON file
@@ -63,6 +64,11 @@ def main(
     # Run an optimisation method for initial
     solution = optimisation_object.optimise(method="greedy")
     initial_costs = optimisation_object.solution_check(solution)
+    if record_greedy_cycles:
+        # Written before the infeasibility check, so failures are recorded too
+        save_greedy_cycles(
+            optimisation_object.greedy_info, initial_costs, input_file, seed
+        )
     if initial_costs["Violations"] > 0:
         print(f"Main function unable to find feasible solution!")
         print()
@@ -102,6 +108,36 @@ def main(
         with open(over_time_file, "wb") as f:
             pickle.dump(improvement_over_time, f)
     return solution, costs
+
+
+def save_greedy_cycles(greedy_info, initial_costs, input_file, seed):
+    """
+    Record how the initial solution generation went, one JSON file per
+    instance and seed: data/greedy_cycles/<instance>_seed<seed>.json
+
+    The greedy is deterministic, so every run of an instance gives the same
+    record. Parallel replications on STORM use different seeds, so they write
+    different files; a rerun with the same seed overwrites its own file, and
+    the write is atomic, so a reader never sees a half-written file.
+    """
+    folder = "./data/greedy_cycles"
+    os.makedirs(folder, exist_ok=True)
+    instance_name = os.path.splitext(os.path.basename(input_file))[0]
+    record = {
+        "instance": instance_name,
+        "seed": seed,
+        **greedy_info,
+        # Validator verdict on the initial solution (nurse coverage included)
+        "feasible": initial_costs["Violations"] == 0,
+        "violations": initial_costs["Violations"],
+        "violation_types": initial_costs["Reasons"],
+    }
+    path = "{}/{}_seed{}.json".format(folder, instance_name, seed)
+    with tempfile.NamedTemporaryFile(
+        "w", dir=folder, suffix=".tmp", delete=False
+    ) as f:
+        json.dump(record, f, indent=2)
+    os.replace(f.name, path)
 
 
 # Optimisation class
@@ -325,7 +361,9 @@ class Optimiser:
         # Apply greedy heuristic
         elif method == "greedy":
             t0 = time.time()
-            solution = grd.greedy_allocation(self.data)
+            solution, self.greedy_info = grd.greedy_allocation(
+                self.data, return_info=True
+            )
             print("Greedy approach took {} seconds".format(time.time() - t0))
         # Method doesn't exist
         else:

@@ -1,7 +1,7 @@
 import time
 
 
-def greedy_allocation(data, time_limit=60, time_tolerance=5):
+def greedy_allocation(data, time_limit=60, time_tolerance=5, return_info=False):
     """
     PATIENT ASSIGNMENT FIRST
     Iterate through days, then iterate through patients:
@@ -27,6 +27,14 @@ def greedy_allocation(data, time_limit=60, time_tolerance=5):
     The greedy algorithm might not be able to satisfy:
     - MandatoryUnscheduledPatients
     - UncoveredRoom
+
+    With return_info=True, returns (solution, info) where info records how many
+    cycles of the patient assignment loop were needed:
+        cycles                   passes of the loop (1 = first attempt succeeded)
+        all_mandatory_admitted   False if the loop stopped on its time limit
+        mandatory_not_admitted   number of mandatory patients left unscheduled
+        seconds                  time spent in the loop
+        time_limit               the loop's time limit (time_limit - time_tolerance)
     """
     # Creating and sorting a list of mandatory patients (earliest admission date then if same date patient with tighter dates)
     all_mandatory_patients = [
@@ -43,8 +51,10 @@ def greedy_allocation(data, time_limit=60, time_tolerance=5):
 
     # Timing iteration of patient assignment
     time_start = time.time()
+    cycles = 0
 
     while True:
+        cycles += 1
         # Preallocating solution
         solution = {
             "patients": [],
@@ -114,6 +124,14 @@ def greedy_allocation(data, time_limit=60, time_tolerance=5):
             break
         else:
             all_mandatory_patients = not_allocated + admitted_mandatory_patients
+
+    info = {
+        "cycles": cycles,
+        "all_mandatory_admitted": len(not_allocated) == 0,
+        "mandatory_not_admitted": len(not_allocated),
+        "seconds": time.time() - time_start,
+        "time_limit": time_limit - time_tolerance,
+    }
 
     # Iterating over non-mandatory patients
     all_non_mandatory_patients = [
@@ -193,6 +211,8 @@ def greedy_allocation(data, time_limit=60, time_tolerance=5):
         if len(nurse_allocation[nurse_id]["assignments"]) > 0:
             solution["nurses"].append(nurse_allocation[nurse_id])
 
+    if return_info:
+        return solution, info
     return solution
 
 

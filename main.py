@@ -38,6 +38,11 @@ if __name__ == "__main__":
         )
         parser.add_argument("--sequence_length", type=int, default=0)
         parser.add_argument("--save_costs", action="store_true")
+        parser.add_argument(
+            "--record_greedy_cycles",
+            action="store_true",
+            help="Save initial solution generation cycles to data/greedy_cycles/",
+        )
         parser.add_argument("--costs_folder", type=str, default="data/individual_costs")
         parser.add_argument("--lambda_qlearner", type=float, default="0.00005")  # NEW
         parser.add_argument("--rho_learning_rate", type=float, default="0.01")  # NEW
@@ -96,6 +101,7 @@ if __name__ == "__main__":
             num_cores=args.num_cores,
             delta_sa=args.delta_sa,
             heuristic_set=args.heuristic_set,
+            record_greedy_cycles=args.record_greedy_cycles,
         )
 
         # Saving solution
