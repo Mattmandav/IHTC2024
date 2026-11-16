@@ -3,7 +3,7 @@
 #SBATCH -c 4
 #SBATCH --array=1-20
 #SBATCH -o ../output_ihtc_instances/%A_%a.out
-#SBATCH --mail-user=m.davison2@lancaster.ac.uk
+#SBATCH --mail-user=a.d.page@lancaster.ac.uk
 #SBATCH --mail-type=end
 #SBATCH --exclude=blackett
 
