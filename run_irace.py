@@ -154,7 +154,8 @@ def main(selection, acceptance, heuristic_set):
         scenario=scenario,
         return_df=True,
     )
-    irace_eg.to_csv(f"./{name}.csv")
+    os.makedirs("./irace_results", exist_ok=True)
+    irace_eg.to_csv(f"./irace_results/{name}.csv")
     print(irace_eg)
 
 
