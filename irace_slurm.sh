@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH -J IHTC_IRACE
 #SBATCH -c 4
-#SBATCH --array=1-27
+#SBATCH --array=1-27%14
 #SBATCH -o ../output_ihtc_irace/%A_%a.out
-#SBATCH --mail-user=m.davison2@lancaster.ac.uk
+#SBATCH --mail-user=a.d.page@lancaster.ac.uk
 #SBATCH --mail-type=end
 #SBATCH --exclude=blackett
 
@@ -23,4 +23,5 @@ source ~/start-pyenv
 REPO=~/IHTC2024
 cd $REPO
 
+export PATH="$HOME/.local/bin:$PATH"
 srun uv run run_irace.py $SLURM_ARRAY_TASK_ID

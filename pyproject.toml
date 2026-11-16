@@ -12,6 +12,7 @@ dependencies = [
     "ruff>=0.16.2",
     "pybind11>=3.1.0",
     "setuptools>=84.2.1",
+    "rpy2<3.6",
 ]
 
 [tool.uv.sources]
