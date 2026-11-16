@@ -21,6 +21,11 @@ if __name__ == "__main__":
             'improve_only': {'sequence_length': 2, 'lambda_q':  0.0022}
         },
     }
+    # One seed per replication: SLURM array task N uses seed N (42 when run by hand),
+    # so the 20 array tasks are independent replications rather than 20 copies
+    # of the same search path.
+    seed = int(os.environ.get("SLURM_ARRAY_TASK_ID", 42))
+    print("Seed: {}".format(seed))
     instance_names = ['i' + '0' + str(num)+ '.json' if num < 10 else 'i' + str(num) + '.json' for num in range(1,31)]
     for selection in ["random", "qlearner", 'mcrl']:
         #for acceptance in ['r2r', 'improve_only']:
@@ -42,7 +47,7 @@ if __name__ == "__main__":
                 else:
                     delta_sa = None
                 solution, costs = main('data/instances/{}'.format(instance),
-                                        seed = 42,
+                                        seed = seed,
                                         time_limit = 600,
                                         time_tolerance = 3,
                                         verbose = False,

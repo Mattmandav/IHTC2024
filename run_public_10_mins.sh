@@ -5,6 +5,7 @@
 #SBATCH --mail-user=m.davison2@lancaster.ac.uk
 #SBATCH --mail-type=end
 #SBATCH -o ../output_ihtc_R2_sa/%A_%a.out
+#SBATCH --exclude=blackett
 
 
 DIRECTORY='./data/solutions/run'$SLURM_ARRAY_TASK_ID
