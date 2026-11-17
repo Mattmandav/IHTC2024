@@ -1,0 +1,231 @@
+--- src/algorithms.cpp	2026-11-17 18:23:40.418813196 +0100
++++ src/algorithms.cpp	2026-11-17 18:23:40.495464458 +0100
+@@ -1,6 +1,7 @@
+ #include "move_generator.h"
+ #include "move.h"
+ #include "perturbator.h"
++#include "run_stats.h"
+ 
+ void sa_plus(Solution& s, 
+     EvalElemHardConstraints& eval_elem_hard_constraints, EvalElemSoftConstraints& eval_elem_soft_constraints,
+@@ -24,11 +25,14 @@
+             if (move == nullptr) {
+                 continue;
+             }
++            run_stats.sa_iterations++;
+ 
+             // Hard constraints
+             int hard_sum_incr = move->get_incr(eval_elem_hard_constraints, s.sd, false);
+             if (hard_sum_incr < 0) {
+                 s.step(*move);
++                run_stats.sa_accepted++;
++                run_stats.sa_improving++;
+                 break;
+             }
+             if (hard_sum_incr > 0) {
+@@ -40,6 +44,7 @@
+                 }
+                 if (exp((double) -hard_sum_incr / temp) > rand(gen)) {
+                     s.step(*move);
++                    run_stats.sa_accepted++;
+ #if DEBUG >= 1
+                     if (debug_level > 1) {
+                         std::cout << time_elapsed << ", SA: Evaluation: " << s.evaluation.to_string() << ", Incr: " << hard_sum_incr << ", temp: " << temp << std::endl;
+@@ -53,6 +58,10 @@
+             int soft_sum_incr = move->get_incr(eval_elem_soft_constraints, s.sd, false);
+             if (soft_sum_incr <= 0) {
+                 s.step(*move);
++                run_stats.sa_accepted++;
++                if (soft_sum_incr < 0) {
++                    run_stats.sa_improving++;
++                }
+                 break;
+             }
+             double time_elapsed_frac2 = time_elapsed / (double) (duration * temperature_duration_fractions[1]);
+@@ -63,6 +72,7 @@
+             }
+             if (exp((double) -soft_sum_incr / temp) > rand(gen)) {
+                 s.step(*move);
++                run_stats.sa_accepted++;
+ #if DEBUG >= 1
+                 if (debug_level > 1) {
+                     std::cout << time_elapsed << ", SA: Evaluation: " << s.evaluation.to_string() << ", Incr: " << soft_sum_incr << ", temp: " << temp << std::endl;
+@@ -71,10 +81,12 @@
+                 break;
+             }
+         }
++        stats_check_feasible(s);
+ 
+         if (s.evaluation < best_eval) {
+             best_sd = s.sd;
+             best_eval = s.evaluation;
++            run_stats.sa_new_best++;
+ #if DEBUG >= 1
+             if (debug_level > 0) {
+                 std::cout << time_elapsed << "SA: New best: " << s.evaluation.to_string() << std::endl;
+@@ -110,11 +122,14 @@
+ 
+         while (gen.move_next()) {
+             auto move = gen.current();
++            run_stats.ls_iterations++;
+ 
+             // Hard constraints
+             int hard_sum_incr = move->get_incr(eval_elem_hard_constraints, s.sd, false);
+             if (hard_sum_incr < 0) {
+                 s.step(*move);
++                run_stats.ls_improving++;
++                stats_check_feasible(s);
+ #if DEBUG >= 1
+                 if (debug_level > 0) { 
+                     std::cout << "FI: Evaluation: " << s.evaluation.to_string() << ", Incr: [" << hard_sum_incr << ", *]" << std::endl;
+@@ -128,6 +143,8 @@
+                 int soft_sum_incr = move->get_incr(eval_elem_soft_constraints, s.sd, false);
+                 if (soft_sum_incr < 0) {
+                     s.step(*move);
++                    run_stats.ls_improving++;
++                    stats_check_feasible(s);
+ #if DEBUG >= 1
+                     if (debug_level > 0) { 
+                         std::cout << "FI: Evaluation: " << s.evaluation.to_string() << ", Incr: [" << hard_sum_incr << ", " << soft_sum_incr << "]" << std::endl;
+@@ -221,6 +238,7 @@
+     while (std::chrono::system_clock::now() - start <= std::chrono::duration<double>(duration)) {
+         int duration_remaining = (std::chrono::duration<double>(duration) - std::chrono::duration<double>(std::chrono::system_clock::now() - start)).count();
+         fi_plus(s, eval_elem_hard_constraints, eval_elem_soft_constraints, mgu, gen, duration_remaining, debug_level - 3);
++        run_stats.ils_iterations++;
+ 
+         if (s.evaluation <= best_eval) {
+             bool is_strictlybetter = s.evaluation < best_eval;
+@@ -238,6 +256,7 @@
+ #endif
+             if (is_strictlybetter) {
+                 local_optimas = 0;
++                run_stats.ils_new_best++;
+             }
+         } else if (s.evaluation.values[0] <= best_eval.values[0] && s.evaluation.values[1] <= ((double) best_eval.values[1]) + temptol) {
+             current_sd = s.sd;
+@@ -261,6 +280,7 @@
+ 
+         ks2 = dist(gen);
+         perturb_index = pu.perturb(s, ks2);
++        stats_check_feasible(s);
+ 
+ #if DEBUG >= 1
+         if (debug_level > 3) {
+@@ -293,6 +313,7 @@
+     while (std::chrono::system_clock::now() - start <= std::chrono::duration<double>(duration)) {
+         int duration_remaining = (std::chrono::duration<double>(duration) - std::chrono::duration<double>(std::chrono::system_clock::now() - start)).count();
+         fi_plus(s, eval_elem_hard_constraints, eval_elem_soft_constraints, mg, gen, duration_remaining, debug_level - 3);
++        run_stats.ils_iterations++;
+ 
+         if (s.evaluation <= best_eval) {
+             bool is_strictlybetter = s.evaluation < best_eval;
+@@ -308,6 +329,7 @@
+ #endif
+             if (is_strictlybetter) {
+                 local_optimas = 0;
++                run_stats.ils_new_best++;
+             }
+             
+ 
+@@ -330,6 +352,7 @@
+ 
+         ks2 = dist(gen);
+         perturb_index = pu.perturb(s, ks2);
++        stats_check_feasible(s);
+ 
+ #if DEBUG >= 1
+         if (debug_level > 3) {
+--- src/main.cpp	2026-11-17 18:23:40.419268393 +0100
++++ src/main.cpp	2026-11-17 18:23:40.496965124 +0100
+@@ -13,6 +13,7 @@
+ #include "config.h"
+ #include "algorithms.h"
+ #include <future>
++#include "run_stats.h"
+ 
+ void run4(const Problem& p, Solution& s, std::mt19937& gen, EvalElemHardConstraints& eval_elem_hard_constraints, EvalElemSoftConstraints& eval_elem_soft_constraints, int debug_level) {
+     // 0315ba025bf511358f7cd2bc167b7bb6
+@@ -238,6 +239,7 @@
+ }
+ 
+ int main(int argc, char **argv) {
++    auto program_start = std::chrono::steady_clock::now();
+     // ----------------
+     // Problem
+     // ----------------
+@@ -274,6 +276,7 @@
+ 
+     //filename = "../data/ihtc2024_competition_dataset/i01.json";
+     Problem p = Problem::from_textio(filename, gen);
++    double load_seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - program_start).count();
+ 
+     EvalElemHardConstraints eval_elem_hard_constraints = EvalElemHardConstraints(p);
+ 
+@@ -281,7 +284,7 @@
+     // 1
+     std::random_device rd1 = std::random_device();
+     auto dist1 = std::uniform_int_distribution<unsigned>(0, 10000);
+-    unsigned seed1 = dist1(rd1);
++    unsigned seed1 = dist1(gen);
+     std::mt19937 gen1 = std::mt19937(seed1);
+     SolutionData sd1 = SolutionData::random_initial_solution(p, gen1);
+     Solution s1 = Solution(p, sd1);
+@@ -313,7 +316,7 @@
+     // 2
+     std::random_device rd2 = std::random_device();
+     auto dist2 = std::uniform_int_distribution<unsigned>(0, 10000);
+-    unsigned seed2 = dist2(rd2);
++    unsigned seed2 = dist2(gen);
+     std::mt19937 gen2 = std::mt19937(seed2);
+     SolutionData sd2 = SolutionData::random_initial_solution(p, gen2);
+     Solution s2 = Solution(p, sd2);
+@@ -342,7 +345,7 @@
+     // 3
+     std::random_device rd3 = std::random_device();
+     auto dist3 = std::uniform_int_distribution<unsigned>(0, 10000);
+-    unsigned seed3 = dist3(rd3);
++    unsigned seed3 = dist3(gen);
+     std::mt19937 gen3 = std::mt19937(seed3);
+     SolutionData sd3 = SolutionData::random_initial_solution(p, gen3);
+     Solution s3 = Solution(p, sd3);
+@@ -372,7 +375,7 @@
+     // 4
+     std::random_device rd4 = std::random_device();
+     auto dist4 = std::uniform_int_distribution<unsigned>(0, 10000);
+-    unsigned seed4 = dist4(rd4);
++    unsigned seed4 = dist4(gen);
+     std::mt19937 gen4 = std::mt19937(seed4);
+     SolutionData sd4 = SolutionData::random_initial_solution(p, gen4);
+     Solution s4 = Solution(p, sd4);
+@@ -399,12 +402,15 @@
+     s4.evaluation = s4.get_objective(false);    
+ 
+     
++    std::vector<RunStats> stats(4);
+     std::vector<std::future<void>> futures;
+-    futures.push_back(std::async(std::launch::async, run1, std::ref(p), std::ref(s1), std::ref(gen1), std::ref(eval_elem_hard_constraints), std::ref(eval_elem_soft_constraints1), debug_level));
+-    futures.push_back(std::async(std::launch::async, run2, std::ref(p), std::ref(s2), std::ref(gen2), std::ref(eval_elem_hard_constraints), std::ref(eval_elem_soft_constraints2), debug_level));
+-    futures.push_back(std::async(std::launch::async, run3, std::ref(p), std::ref(s3), std::ref(gen3), std::ref(eval_elem_hard_constraints), std::ref(eval_elem_soft_constraints3), debug_level));
++    futures.push_back(std::async(std::launch::async, [&]() { stats_begin(s1); run1(p, s1, gen1, eval_elem_hard_constraints, eval_elem_soft_constraints1, debug_level); stats[0] = stats_end(s1); }));
++    futures.push_back(std::async(std::launch::async, [&]() { stats_begin(s2); run2(p, s2, gen2, eval_elem_hard_constraints, eval_elem_soft_constraints2, debug_level); stats[1] = stats_end(s2); }));
++    futures.push_back(std::async(std::launch::async, [&]() { stats_begin(s3); run3(p, s3, gen3, eval_elem_hard_constraints, eval_elem_soft_constraints3, debug_level); stats[2] = stats_end(s3); }));
+ 
++    stats_begin(s4);
+     run4(p, s4, gen4, eval_elem_hard_constraints, eval_elem_soft_constraints4, debug_level);
++    stats[3] = stats_end(s4);
+ 
+     for (auto& f : futures) {
+         f.get();
+@@ -446,6 +452,12 @@
+     best_sd.write_to_file(filename_out);
+     std::cout << "Saved to " << filename_out << std::endl;
+ 
++    if (argc >= 6) {
++        double total_seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - program_start).count();
++        write_run_stats(argv[5], seed, {seed1, seed2, seed3, seed4}, stats, which, load_seconds, total_seconds);
++        std::cout << "Run statistics saved to " << argv[5] << std::endl;
++    }
++
+     int sum_hardconstrs = 0;
+     for (int i = 0; i < best_eval.values.size() - 1; i++) {
+         sum_hardconstrs += best_eval.values[i];
