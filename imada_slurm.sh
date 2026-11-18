@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J IHTC_IMADA
 #SBATCH -c 4
-#SBATCH --array=1-20
+#SBATCH --array=1-10
 #SBATCH -o ../output_ihtc_imada/%A_%a.out
 #SBATCH --mail-user=a.d.page@lancaster.ac.uk
 #SBATCH --mail-type=end
