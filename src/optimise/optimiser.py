@@ -35,6 +35,7 @@ def main(
     num_cores=4,
     heuristic_set="ours",
     record_greedy_cycles=False,
+    search_stats_file=None,
 ):
 
     # Open and read the JSON file
@@ -90,6 +91,16 @@ def main(
     # Reporting process
     print(f"Main function completed!")
     print()
+
+    if search_stats_file is not None:
+        # Iteration counts and best cost over time (see improvement_hyper_heuristic)
+        stats = getattr(optimisation_object, "search_stats", None)
+        if stats is not None:
+            with tempfile.NamedTemporaryFile(
+                "w", dir=os.path.dirname(search_stats_file) or ".", suffix=".tmp", delete=False
+            ) as f:
+                json.dump(stats, f, indent=2)
+            os.replace(f.name, search_stats_file)
 
     if save_improvement_over_time:
         # One file per run, selection, acceptance, heuristic set and instance,
@@ -404,6 +415,27 @@ class Optimiser:
         t_end = time.time() + (self.time_limit - self.time_tolerance)
         score_time = {}
         score_time[float(time.time())] = current_solution_value
+
+        # Search statistics, comparable with the IMADA run statistics:
+        #   iterations  loops of this while loop
+        #   candidates  candidate solutions evaluated (pool_size per loop)
+        #   improving   feasible candidates strictly better than the solution
+        #               they were generated from
+        #   new_best    times the best solution improved
+        # A snapshot is taken at each new best and at fixed checkpoints, with
+        # seconds counted from the start of this search (after the greedy).
+        stats = {"iterations": 0, "candidates": 0, "improving": 0, "new_best": 0}
+        checkpoints = [60, 300, 595, 600, 1200, 1800, 3600, 5400]
+        snapshots = []
+        search_start = time.time()
+
+        def snapshot(event):
+            snapshots.append(
+                {"event": event, "seconds": time.time() - search_start, **stats,
+                 "best_cost": best_solution_value}
+            )
+
+        snapshot("start")
         while time.time() < t_end:
             # Applying moves
             with mp.Pool(self.cores) as p:
@@ -420,6 +452,15 @@ class Optimiser:
                 elif self.heuristic_selection == "mcrl":
                     new_solutions = p.map(self.mcrl_solution_adjustment, solution_pool)
                 values = p.map(self.solution_score, new_solutions)
+
+            stats["iterations"] += 1
+            stats["candidates"] += len(values)
+            stats["improving"] += sum(
+                1
+                for i in range(len(values))
+                if values[i]["Violations"] == 0
+                and values[i]["Cost"] < previous_values[i]
+            )
 
             # Append number of attempts
             if self.verbose:
@@ -464,6 +505,12 @@ class Optimiser:
                 best_solution = temp_best
                 best_solution_value = temp_best_value
                 self.solution_collect_costs(temp_best)
+                stats["new_best"] += 1
+                snapshot("new_best")
+
+            elapsed = time.time() - search_start
+            while checkpoints and elapsed >= checkpoints[0]:
+                snapshot("checkpoint_{}s".format(checkpoints.pop(0)))
 
             # Reporting results
             if self.verbose:
@@ -483,6 +530,15 @@ class Optimiser:
 
         # Records final solution value
         self.solution_collect_costs(best_solution)
+        snapshot("end")
+        self.search_stats = {
+            **stats,
+            "best_cost": best_solution_value,
+            "seconds": time.time() - search_start,
+            "pool_size": pool_size,
+            "sequence_length": self.max_sequence_length,
+            "snapshots": snapshots,
+        }
 
         return best_solution, self.costs, score_time
 

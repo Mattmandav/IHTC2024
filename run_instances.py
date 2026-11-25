@@ -94,11 +94,15 @@ def write_json(path, data):
     os.replace(f.name, path)
 
 
-def run_job(instance, time_limit, selection, acceptance, params, rep, cores, folder):
+def run_job(instance, time_limit, selection, acceptance, params, rep, cores, folder,
+            search_stats=False):
+    """With search_stats, also saves iteration counts over time to
+    stats_<instance>.json and adds their totals to the result file."""
     os.makedirs(folder, exist_ok=True)
     instance_path = os.path.join(INSTANCE_FOLDER, instance + ".json")
     solution_path = os.path.join(folder, "sol_{}.json".format(instance))
     result_path = os.path.join(folder, "result_{}.json".format(instance))
+    stats_path = os.path.join(folder, "stats_{}.json".format(instance))
     seed = rep
 
     kwargs = dict(
@@ -112,6 +116,7 @@ def run_job(instance, time_limit, selection, acceptance, params, rep, cores, fol
         num_cores=cores,
         heuristic_set=HEURISTIC_SET,
         record_greedy_cycles=True,
+        search_stats_file=stats_path if search_stats else None,
     )
     if "lambda_qlearner" in params:
         kwargs["lambda_q"] = params["lambda_qlearner"]
@@ -130,6 +135,22 @@ def run_job(instance, time_limit, selection, acceptance, params, rep, cores, fol
     greedy_file = os.path.join(GREEDY_FOLDER, "{}_seed{}.json".format(instance, seed))
     greedy = json.load(open(greedy_file)) if os.path.isfile(greedy_file) else {}
 
+    search = {}
+    if search_stats and os.path.isfile(stats_path):
+        stats = json.load(open(stats_path))
+        at_595 = next((s for s in stats["snapshots"] if s["event"] == "checkpoint_595s"), None)
+        search = {
+            "iterations": stats["iterations"],
+            "candidates": stats["candidates"],
+            "improving_candidates": stats["improving"],
+            "new_best_solutions": stats["new_best"],
+            "search_seconds": stats["seconds"],
+            # State at IMADA's search time, for comparison with its runs
+            "cost_at_595s": at_595["best_cost"] if at_595 else None,
+            "candidates_at_595s": at_595["candidates"] if at_595 else None,
+            "improving_at_595s": at_595["improving"] if at_595 else None,
+        }
+
     # Written last: its presence marks the job as done
     write_json(result_path, {
         "instance": instance,
@@ -147,6 +168,7 @@ def run_job(instance, time_limit, selection, acceptance, params, rep, cores, fol
         "greedy_cycles": greedy.get("cycles"),
         "greedy_all_mandatory_admitted": greedy.get("all_mandatory_admitted"),
         "greedy_seconds": greedy.get("seconds"),
+        **search,
         "time_limit": time_limit,
         "cores": cores,
         "params": params,
